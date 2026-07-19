@@ -1095,6 +1095,14 @@
   <section class="view" id="view-data">
     <div class="eyebrow">Migration &amp; backup</div>
     <div class="panel" style="border-color:var(--border2)">
+      <h3>Cloud sync <span style="font-size:9px;color:var(--gold);letter-spacing:.12em;border:1px solid rgba(201,169,110,.4);border-radius:2px;padding:2px 7px;margin-left:6px;vertical-align:2px">PC ⇄ PHONE</span></h3>
+      <div class="sub">keeps every device in step. Status: <span id="syncStatus" style="color:var(--gold)">—</span></div>
+      <div class="btnrow" style="justify-content:flex-start;margin-top:13px;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="syncNow()">⟳ Sync now</button>
+      </div>
+      <div class="sub" style="margin-top:10px;font-size:10px;color:var(--muted)">Tip: fresh-load the app before you start on a device, and check it says “synced” before you leave it. Last save wins.</div>
+    </div>
+    <div class="panel" style="border-color:var(--border2)">
       <h3>File backup <span style="font-size:9px;color:var(--gold);letter-spacing:.12em;border:1px solid rgba(201,169,110,.4);border-radius:2px;padding:2px 7px;margin-left:6px;vertical-align:2px">RECOMMENDED</span></h3>
       <div class="sub">one .json file with everything — goals, habits, soccer, every block week &amp; weekly reviews. Best for moving between your laptop and PC.</div>
       <div class="btnrow" style="justify-content:flex-start;margin-top:13px;gap:10px;flex-wrap:wrap">
@@ -1173,6 +1181,69 @@ function b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
 /* ---- store helpers ---- */
 function read(key){ try{ const v=localStorage.getItem(key); return v==null?null:JSON.parse(v); }catch(e){ return null; } }
 function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSON.stringify(val)); }
+
+/* ============================================================
+   ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
+   Leave them blank and the app runs purely local (no sync), exactly as before.
+   ============================================================ */
+const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co/rest/v1/";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "vacheron-constantin-overseas-2113";   // your secret passphrase — the SAME on every device
+/* ---- sync engine (no need to edit below) ---- */
+const SYNC_TS_KEY='lodestar:sync:ts';
+let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
+function syncOn(){ return !!(SYNC_URL && SYNC_KEY && SYNC_PASS); }
+function syncHeaders(){ return {'apikey':SYNC_KEY,'Authorization':'Bearer '+SYNC_KEY,'Content-Type':'application/json'}; }
+function syncStamp(){ return new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+function syncSetStatus(cls, txt){
+  const pill=document.getElementById('sysState'); if(pill){ pill.textContent=txt; pill.className='val '+(cls==='error'?'cold':cls==='synced'?'live':''); }
+  const f=document.getElementById('footState'); if(f) f.textContent = syncOn()? (txt.charAt(0).toUpperCase()+txt.slice(1)) : f.textContent;
+  const b=document.getElementById('syncStatus'); if(b) b.textContent=txt;
+}
+function syncSnapshot(){ const data={}; allAppKeys().forEach(k=>{ if(k.indexOf('lodestar:sync:')===0) return; const v=localStorage.getItem(k); if(v!=null) data[k]=v; }); return data; }
+function syncApplySnapshot(data){ if(!data||typeof data!=='object') return 0; syncApplying=true; let n=0; try{ Object.keys(data).forEach(k=>{ if(typeof data[k]==='string'){ localStorage.setItem(k,data[k]); n++; } }); } finally{ syncApplying=false; } return n; }
+async function syncPull(){
+  if(!syncOn()) return;
+  try{
+    syncSetStatus('sync','syncing…');
+    const r=await fetch(SYNC_URL+'/rest/v1/lodestar_data?id=eq.'+encodeURIComponent(SYNC_PASS)+'&select=blob,updated_at',{headers:syncHeaders()});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(rows && rows.length && rows[0].blob){
+      const remoteTs=Date.parse(rows[0].updated_at)||0;
+      const localTs=parseInt(localStorage.getItem(SYNC_TS_KEY)||'0',10);
+      if(remoteTs>localTs){
+        syncApplySnapshot(JSON.parse(rows[0].blob));
+        localStorage.setItem(SYNC_TS_KEY, String(remoteTs));
+        try{ blkMigrateToMonday(); recomputeGoals(); }catch(_){}
+        try{ show(currentView); }catch(_){ try{ renderDash(); }catch(__){} }
+      }
+    }
+    syncSetStatus('synced','synced '+syncStamp());
+  }catch(e){ syncSetStatus('error','sync error — retrying'); }
+}
+async function syncPush(){
+  if(!syncOn()||syncBusy) return; syncBusy=true;
+  try{
+    syncSetStatus('sync','saving…');
+    const ts=new Date();
+    const body=JSON.stringify({id:SYNC_PASS, blob:JSON.stringify(syncSnapshot()), updated_at:ts.toISOString()});
+    const r=await fetch(SYNC_URL+'/rest/v1/lodestar_data',{method:'POST', headers:Object.assign({'Prefer':'resolution=merge-duplicates,return=minimal'},syncHeaders()), body});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    localStorage.setItem(SYNC_TS_KEY, String(ts.getTime()));
+    syncSetStatus('synced','synced '+syncStamp());
+  }catch(e){ syncSetStatus('error','sync error — will retry'); }
+  finally{ syncBusy=false; }
+}
+function syncOnChange(key){ if(syncApplying||!syncOn()) return; if(String(key).indexOf('lodestar:sync:')===0) return; clearTimeout(syncTimer); syncTimer=setTimeout(syncPush, 1500); }
+function syncNow(){ if(!syncOn()){ alert('Sync isn\u2019t set up yet — add your Supabase values to the file.'); return; } syncPull().then(syncPush); }
+function syncInit(){
+  if(!syncOn()){ syncSetStatus('local','offline'); return; }
+  const _set=localStorage.setItem.bind(localStorage);
+  localStorage.setItem=function(k,v){ _set(k,v); try{ syncOnChange(k); }catch(_){} };
+  syncPull();
+  setInterval(()=>{ if(!syncBusy) syncPull(); }, 60000);
+}
 function weekKeys(){ const out=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith(WK_PREFIX)) out.push(k); } return out; }
 function hasData(){ return read(KEYS.goals)!==null || weekKeys().length>0 || read(KEYS.sjEntries)!==null; }
 
@@ -1841,6 +1912,7 @@ function ctxCopyForClaude(){
    WIRING
    ============================================================ */
 function show(view){
+  currentView=view;
   document.querySelectorAll('.navtab').forEach(t=>t.setAttribute('aria-selected', t.dataset.view===view));
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on', v.id==='view-'+view));
   if(view==='dash') renderDash();
@@ -2957,6 +3029,7 @@ function blkDoPlan(){
 blkMigrateToMonday();
 try{ recomputeGoals(); }catch(_){}
 renderDash();
+syncInit();
 </script>
 </body>
 </html>
