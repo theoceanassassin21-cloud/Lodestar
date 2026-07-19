@@ -582,6 +582,53 @@
   .plan-empty{font-size:12px;color:var(--dim);padding:14px 0;line-height:1.6}
   @media(max-width:760px){.blk-ledger{display:none}}
 
+  /* ════ MOBILE: read-only blocks agenda ════ */
+  .blk-mobilelist{display:none}
+  .ml-day{border:1px solid var(--border);border-radius:4px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
+  .ml-day.today{border-color:var(--gold)}
+  .ml-dayhead{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--text);padding:9px 13px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:8px}
+  .ml-dayhead span{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+  .ml-todaytag{margin-left:auto;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(201,169,110,.4);border-radius:2px;padding:2px 7px}
+  .ml-empty{padding:11px 14px;color:var(--muted);font-size:12px}
+  .ml-block{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border)}
+  .ml-block:last-child{border-bottom:none}
+  .ml-block.done{opacity:.5}.ml-block.done .ml-name{text-decoration:line-through}
+  .ml-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .ml-time{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:116px}
+  .ml-name{font-size:13px;color:var(--text);flex:1;min-width:0}
+  .ml-lock{font-size:10px;opacity:.7}
+
+  /* ════ PHONE PASS (≤600px) — reflow & enlarge; PC unaffected ════ */
+  @media(max-width:600px){
+    body{font-size:14px}
+    .main{padding:18px 12px 72px}
+    .panel{padding:16px 15px}
+    /* kill iOS input zoom + fatten touch targets */
+    .form-input,.form-select,.form-textarea,.habit-input,.habit-cat-select,.lk-set select,.lk-set input,.ctx-datebar input[type=date],textarea,input[type=text],input[type=number],input[type=date],input[list],select,.stepper-input{font-size:16px !important;padding:11px 12px}
+    textarea{min-height:88px}
+    .stepper-input{width:64px;height:38px}
+    .lk-set{grid-template-columns:1fr;gap:8px}.lk-hint{margin-left:0}
+    /* buttons → ~44px targets */
+    .btn{padding:13px 20px;font-size:12px;min-height:46px}
+    .tier-tab{padding:12px 16px;font-size:11px}
+    .cat-filter{padding:8px 14px;font-size:11px}
+    .goal-btn{padding:8px 12px}
+    /* nav bigger */
+    .sidebar{padding:9px 10px;gap:10px}
+    .navtab{font-size:12px;padding:12px 13px}
+    .mark{font-size:20px}
+    /* rein in big serif so nothing overflows */
+    .hero h2{font-size:23px}.hero{padding:26px 18px}
+    .cell .n{font-size:26px}.cell{padding:14px 12px}
+    .grid{grid-template-columns:1fr 1fr}
+    /* blocks: hide the drag grid + planning tools, show read-only agenda */
+    .blk-seg,.blk-impbtn,.blk-tray,.blk-daybar,.blk-gridwrap,.blk-ledger{display:none !important}
+    .blk-mobilelist{display:block}
+    .blk-tools{flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .blk-weeknav .rng{font-size:18px;min-width:auto}
+    /* modals fit the screen */
+    .modal{width:94vw;max-width:94vw;max-height:88vh;overflow-y:auto}
+  }
 </style>
 </head>
 <body>
@@ -799,6 +846,7 @@
       <div class="grid" id="blkGrid"></div>
       <div class="blk-emptynote" id="blkEmptyNote" style="display:none"><b>Add a block</b>, then drag it from the tray onto a day.<br>Import your calendar to lock in fixed events.</div>
     </div>
+    <div class="blk-mobilelist" id="blkMobileList"></div>
    </div>
   </section>
   <div class="floatghost" id="blkFloatGhost"></div>
@@ -2822,12 +2870,31 @@ function blkRenderTray(){
 }
 function blkRenderRange(){ document.getElementById('blkRange').textContent=`${blkFmtMon(blkWeekStart)} – ${blkFmtMon(blkAddDays(blkWeekStart,6))}`; }
 function blkRenderAll(){
-  blkRenderRange(); blkRenderLedger(); blkRenderTray();
+  blkRenderRange(); blkRenderLedger(); blkRenderTray(); blkRenderMobileList();
   document.getElementById('blkTrayBar').style.display=blkView==='week'?'flex':'none';
   document.getElementById('blkDayBar').classList.toggle('show',blkView==='day');
   document.getElementById('blkWeekBtn').classList.toggle('on',blkView==='week');
   document.getElementById('blkDayBtn').classList.toggle('on',blkView==='day');
   if(blkView==='week') blkRenderWeek(); else blkRenderDay();
+}
+function blkRenderMobileList(){
+  const host=document.getElementById('blkMobileList'); if(!host) return;
+  let html='';
+  for(let i=0;i<7;i++){
+    const d=blkAddDays(blkWeekStart,i);
+    const dayBlocks=blkBlocks.filter(b=>b.placed && b.day===i).sort((a,b)=>(b.allDay?1:0)-(a.allDay?1:0) || a.start-b.start);
+    const isToday=blkIsToday(i);
+    html+=`<div class="ml-day${isToday?' today':''}"><div class="ml-dayhead">${BLK_DOW[i]} <span>${blkFmtMon(d)}</span>${isToday?'<span class="ml-todaytag">today</span>':''}</div>`;
+    if(!dayBlocks.length){ html+='<div class="ml-empty">—</div>'; }
+    else dayBlocks.forEach(b=>{
+      const c=blkCatById(b.category); const col=b.type==='protected'?'var(--muted)':(c?c.color:'var(--dim)');
+      const time=b.allDay?'all day':(blkFmtTime(b.start)+' – '+blkFmtTime(b.end));
+      const name=esc(b.label||(b.type==='protected'?'Protected':'Untitled'));
+      html+=`<div class="ml-block${b.done?' done':''}"><span class="ml-dot" style="background:${col}"></span><span class="ml-time">${time}</span><span class="ml-name">${name}${b.locked?' <span class="ml-lock">🔒</span>':''}</span></div>`;
+    });
+    html+='</div>';
+  }
+  host.innerHTML=html;
 }
 function blkRender(){ blkGoals=read(KEYS.goals)||[]; blkLoadCats(); blkLoadWeek(); blkRenderAll(); }
 
