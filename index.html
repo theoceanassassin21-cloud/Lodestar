@@ -602,6 +602,8 @@
   .ml-time{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:116px}
   .ml-name{font-size:13px;color:var(--text);flex:1;min-width:0}
   .ml-lock{font-size:10px;opacity:.7}
+  .bs-done{appearance:none;width:100%;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:12px;border-radius:3px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--dim);transition:all .15s}
+  .bs-done.on{border-color:var(--green);color:var(--green);background:#0e1510}
 
   /* ════ PHONE PASS (≤600px) — reflow & enlarge; PC unaffected ════ */
   @media(max-width:600px){
@@ -863,6 +865,16 @@
   <div class="floatghost" id="blkFloatGhost"></div>
 
   <!-- PLAN WEEK MODAL -->
+  <div class="modal-bg" id="blkSheet">
+    <div class="modal">
+      <h3 id="bsTitle">Block</h3>
+      <div class="sub" id="bsTime" style="margin-bottom:8px">—</div>
+      <button class="bs-done" id="bsDone" onclick="blkSheetToggleDone()">Mark done</button>
+      <div class="field" style="margin-top:6px"><label class="form-label">Link to a goal</label><select class="form-select" id="bsGoal"></select></div>
+      <div class="field"><label class="form-label">Quick note <span style="color:var(--muted);text-transform:none;letter-spacing:0">(lands in that goal's log box)</span></label><textarea class="form-textarea" id="bsNote" style="min-height:64px"></textarea></div>
+      <div class="modal-foot"><button class="btn ghost" onclick="blkSheetClose()">Cancel</button><button class="btn" onclick="blkSheetSave()">Save</button></div>
+    </div>
+  </div>
   <div class="modal-bg" id="blkPlanOverlay">
     <div class="modal">
       <h3>Plan my week</h3>
@@ -2062,6 +2074,16 @@ const LINK_TYPES=['game','practice','training','benji','gym','recovery'];
 
 let goalsArr=[], decadeArr=[], activeTier='all', activeCat='all', linkEditing=null;
 
+function migrateJournalLink(link, titleForKw){
+  if(!link) return link;
+  const isJournal = link.src==='journal' || (!link.src && !link.type && !link.keywords && !link.habitId && (link.mode||link.match));
+  if(!isJournal) return link;
+  let kws;
+  if(link.match==='activity' && link.activity) kws=[String(link.activity)];
+  else kws=suggestKeywords(titleForKw||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(!kws.length){ const w=String(titleForKw||'goal').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean); kws=[w[0]||'goal']; }
+  return {src:'mention', keywords:kws, scope:'context', target:(link.mode==='sum'?1:(link.target||1))};
+}
 function loadGoals(){
   goalsArr=read(KEYS.goals)||[]; decadeArr=read(KEYS.decade)||[];
   let changed=false;
@@ -2069,6 +2091,7 @@ function loadGoals(){
     if(g&&g.timeline&&TIMELINE_MAP[g.timeline]){ const t=TIMELINE_MAP[g.timeline].tier; if(g.tier!==t){ g.tier=t; changed=true; } }
     if(g&&Array.isArray(g.checkpoints)){ g.checkpoints.forEach((cp,i)=>{ if(cp&&!cp.id){ cp.id='m'+(g.id||'x')+'_'+i+Math.random().toString(36).slice(2,6); changed=true; } }); }
     if(g && !g.completed && !g.incomplete && g.created){ const tl=TIMELINE_MAP[goalTimeline(g)]; if(tl&&tl.days){ if(Date.now() > (g.created + tl.days*86400000)){ g.incomplete=true; g.autoLapsed=true; changed=true; } } }
+    if(g){ const nl=migrateJournalLink(g.link,g.title); if(nl!==g.link){ g.link=nl; changed=true; } (g.checkpoints||[]).forEach(cp=>{ if(!cp) return; const nc=migrateJournalLink(cp.link,cp.text); if(nc!==cp.link){ cp.link=nc; changed=true; } }); }
   });
   if(changed) saveGoals();
 }
@@ -2144,7 +2167,6 @@ function calcProgress(g){
 }
 function linkLabel(g){
   if(!g.link) return '';
-  if(g.link.src==='journal'){ const what=g.link.match==='activity'?(g.link.activity||'activity'):'attached'; return 'Journal · '+(g.link.mode==='sum'?'sum':'count')+' · '+what; }
   if(g.link.src==='habit'){ const h=(read(KEYS.habits)||[]).find(x=>x.id===g.link.habitId); return 'Habit · '+(h?h.name:'habit'); }
   if(g.link.src==='mention'){ return 'Mentions · '+(g.link.keywords||[]).slice(0,2).join('/'); }
   return SESSION_LABELS[g.link.type]||g.link.type||'sessions';
@@ -2176,27 +2198,19 @@ function linkBox(g){
     const curLinkedFlag=!!curLink;
     const srcSel=`<select id="lk-src-${g.id}" onchange="linkSetField('src',this.value)">
       <option value="soccer" ${d.src==='soccer'?'selected':''}>Soccer sessions</option>
-      <option value="journal" ${d.src==='journal'?'selected':''}>Journal log</option>
       <option value="habit" ${d.src==='habit'?'selected':''}>Habit (days done)</option>
-      <option value="mention" ${d.src==='mention'?'selected':''}>Context / journal mention</option></select>`;
+      <option value="mention" ${d.src==='mention'?'selected':''}>Daily-log mention (keywords)</option></select>`;
     const applySel = cps.length ? `<div class="lk-set"><select id="lk-apply-${g.id}" onchange="linkSetApply(this.value)"><option value="" ${!applyTo?'selected':''}>Whole goal</option>${cps.map(c=>`<option value="${c.id}" ${applyTo===c.id?'selected':''}>▸ ${esc(c.text)}</option>`).join('')}</select></div>` : '';
     let fields='';
-    if(d.src==='journal'){
-      const matchSel=`<select id="lk-match-${g.id}" onchange="linkSetField('match',this.value)"><option value="goal" ${d.match!=='activity'?'selected':''}>${applyTo?'Entries on this milestone':'Entries attached to this goal'}</option><option value="activity" ${d.match==='activity'?'selected':''}>By activity name</option></select>`;
-      const modeSel=`<select id="lk-mode-${g.id}" onchange="linkSetField('mode',this.value)"><option value="count" ${d.mode!=='sum'?'selected':''}>Count entries</option><option value="sum" ${d.mode==='sum'?'selected':''}>Sum values</option></select>`;
-      const actInput=d.match==='activity'?`<div class="lk-set"><input id="lk-activity-${g.id}" placeholder="activity name (e.g. Outreach)" value="${curLink&&curLink.activity?esc(curLink.activity):''}"></div>`:'';
-      fields=`<div class="lk-set">${matchSel}</div>${actInput}<div class="lk-set">${modeSel}<input id="lk-target-${g.id}" type="number" min="0" step="any" placeholder="${d.mode==='sum'?'total':'how many'}" value="${curLink?curLink.target:''}"></div>`;
-    } else if(d.src==='habit'){
+    if(d.src==='habit'){
       const habits=read(KEYS.habits)||[];
       const habOpts=habits.length?habits.map(h=>`<option value="${h.id}" ${curLink&&curLink.habitId===h.id?'selected':''}>${esc(h.name)}</option>`).join(''):'<option value="">— add a habit first —</option>';
       fields=`<div class="lk-set"><select id="lk-habit-${g.id}">${habOpts}</select></div><div class="lk-set"><input id="lk-target-${g.id}" type="number" min="1" placeholder="days" value="${curLink?curLink.target:''}"><span class="lk-hint">days done ${scope}</span></div>`;
     } else if(d.src==='mention'){
       const baseText = targetCp? targetCp.text : g.title;
       const suggested = (curLink&&curLink.keywords&&curLink.keywords.length)? curLink.keywords.join(', ') : suggestKeywords(baseText);
-      const scopeVal=(curLink&&curLink.scope)||'both';
-      fields=`<div class="lk-set"><input id="lk-kw-${g.id}" placeholder="keywords, comma-separated" value="${esc(suggested)}"></div>
-        <div class="lk-set"><select id="lk-scope-${g.id}"><option value="both" ${scopeVal==='both'?'selected':''}>Context + Journal</option><option value="context" ${scopeVal==='context'?'selected':''}>Context only</option><option value="journal" ${scopeVal==='journal'?'selected':''}>Journal only</option></select><input id="lk-target-${g.id}" type="number" min="1" placeholder="days" value="${curLink?curLink.target:''}"></div>
-        <div class="lk-hint" style="display:block;margin-top:4px">counts days your text mentions any keyword (auto-suggested, editable)</div>`;
+      fields=`<div class="lk-set"><input id="lk-kw-${g.id}" placeholder="keywords, comma-separated" value="${esc(suggested)}"><input id="lk-target-${g.id}" type="number" min="1" placeholder="days" value="${curLink?curLink.target:''}"></div>
+        <div class="lk-hint" style="display:block;margin-top:4px">counts days your daily-log text mentions any keyword (auto-suggested, editable)</div>`;
     } else {
       const opts=LINK_TYPES.map(t=>`<option value="${t}" ${curLink&&curLink.type===t?'selected':''}>${SESSION_LABELS[t]}</option>`).join('');
       fields=`<div class="lk-set"><select id="lk-type-${g.id}">${opts}</select><input id="lk-target-${g.id}" type="number" min="1" placeholder="target" value="${curLink?curLink.target:''}"></div>`;
@@ -2383,32 +2397,24 @@ function copyGoalsReview(){
 function deleteGoal(id){ const g=gFind(id); if(!g)return; if(!confirm('Delete "'+g.title+'"? This cannot be undone.'))return; goalsArr=goalsArr.filter(x=>x.id!==id); saveGoals(); renderGoals(); }
 
 let linkDraft=null;
-function openLink(id){ linkEditing=id; const g=gFind(id); const s=(g&&g.link)?(g.link.src||(g.link.type?'soccer':'journal')):'soccer'; linkDraft={src:s,match:(g&&g.link&&g.link.match)||'goal',mode:(g&&g.link&&g.link.mode)||'count',applyTo:''}; renderGoals(); }
+function openLink(id){ linkEditing=id; const g=gFind(id); let s=(g&&g.link)?(g.link.src||(g.link.type?'soccer':'mention')):'soccer'; if(s==='journal')s='mention'; linkDraft={src:s,match:(g&&g.link&&g.link.match)||'goal',mode:(g&&g.link&&g.link.mode)||'count',applyTo:''}; renderGoals(); }
 function linkSetField(f,v){ if(!linkDraft) linkDraft={src:'soccer',match:'goal',mode:'count',applyTo:''}; linkDraft[f]=v; renderGoals(); }
-function linkSetApply(v){ if(!linkDraft) linkDraft={src:'soccer',match:'goal',mode:'count'}; linkDraft.applyTo=v; const g=gFind(linkEditing); let cur=null; if(v){ const cp=((g&&g.checkpoints)||[]).find(c=>c.id===v); cur=cp&&cp.link; } else { cur=(g&&g.link)?g.link:null; } if(cur){ linkDraft.src=cur.src||(cur.type?'soccer':'journal'); linkDraft.mode=cur.mode||'count'; linkDraft.match=cur.match||'goal'; } renderGoals(); }
+function linkSetApply(v){ if(!linkDraft) linkDraft={src:'soccer',match:'goal',mode:'count'}; linkDraft.applyTo=v; const g=gFind(linkEditing); let cur=null; if(v){ const cp=((g&&g.checkpoints)||[]).find(c=>c.id===v); cur=cp&&cp.link; } else { cur=(g&&g.link)?g.link:null; } if(cur){ let cs=cur.src||(cur.type?'soccer':'mention'); if(cs==='journal')cs='mention'; linkDraft.src=cs; linkDraft.mode=cur.mode||'count'; linkDraft.match=cur.match||'goal'; } renderGoals(); }
 function cancelLink(){ linkEditing=null; linkDraft=null; renderGoals(); }
 function saveLink(id){
   const g=gFind(id); if(!g)return;
   const d=linkDraft||{src:'soccer'};
   const applyEl=document.getElementById('lk-apply-'+id); const applyTo=applyEl?applyEl.value:'';
   let linkObj=null;
-  if(d.src==='journal'){
-    const mode=document.getElementById('lk-mode-'+id).value;
-    const match=document.getElementById('lk-match-'+id).value;
-    const target=parseFloat(document.getElementById('lk-target-'+id).value);
-    if(!target||target<=0){ alert('Set a target greater than 0.'); return; }
-    linkObj={src:'journal',mode,match,target};
-    if(match==='activity'){ const el=document.getElementById('lk-activity-'+id); const act=el?el.value.trim():''; if(!act){ alert('Enter the activity name to match.'); return; } linkObj.activity=act; }
-  } else if(d.src==='habit'){
+  if(d.src==='habit'){
     const habitId=document.getElementById('lk-habit-'+id).value; if(!habitId){ alert('Pick a habit (add one on the dashboard first).'); return; }
     const target=parseInt(document.getElementById('lk-target-'+id).value,10); if(!target||target<1){ alert('Set how many days.'); return; }
     linkObj={src:'habit',habitId,target,since:Date.now()};
   } else if(d.src==='mention'){
     const kws=(document.getElementById('lk-kw-'+id).value||'').split(',').map(k=>k.trim()).filter(Boolean);
     if(!kws.length){ alert('Enter at least one keyword to watch for.'); return; }
-    const sc=document.getElementById('lk-scope-'+id).value;
     const target=parseInt(document.getElementById('lk-target-'+id).value,10); if(!target||target<1){ alert('Set how many days.'); return; }
-    linkObj={src:'mention',keywords:kws,scope:sc,target,since:Date.now()};
+    linkObj={src:'mention',keywords:kws,scope:'context',target,since:Date.now()};
   } else {
     const type=document.getElementById('lk-type-'+id).value;
     const target=parseInt(document.getElementById('lk-target-'+id).value,10); if(!target||target<1){ alert('Set a target of at least 1 session.'); return; }
@@ -2924,11 +2930,57 @@ function blkRenderMobileList(){
       const c=blkCatById(b.category); const col=b.type==='protected'?'var(--muted)':(c?c.color:'var(--dim)');
       const time=b.allDay?'all day':(blkFmtTime(b.start)+' – '+blkFmtTime(b.end));
       const name=esc(b.label||(b.type==='protected'?'Protected':'Untitled'));
-      html+=`<div class="ml-block${b.done?' done':''}"><span class="ml-dot" style="background:${col}"></span><span class="ml-time">${time}</span><span class="ml-name">${name}${b.locked?' <span class="ml-lock">🔒</span>':''}</span></div>`;
+      html+=`<div class="ml-block${b.done?' done':''}" onclick="blkSheetOpen('${b.id}')"><span class="ml-dot" style="background:${col}"></span><span class="ml-time">${time}</span><span class="ml-name">${name}${b.locked?' <span class="ml-lock">🔒</span>':''}</span></div>`;
     });
     html+='</div>';
   }
   host.innerHTML=html;
+}
+let blkSheetId=null, blkSheetDone=false;
+function blkDateOf(b){ return new Date(blkAddDays(blkWeekStart, b.day).getTime()-blkWeekStart.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function goalsRelatedToBlock(b){
+  try{ if(!blkCats||!blkCats.length) blkLoadCats(); }catch(_){}
+  let cn=''; try{ const c=blkCatById(b.category); cn=(c&&c.name)||''; }catch(_){}
+  const btext=((b.label||'')+' '+cn).toLowerCase();
+  loadGoals();
+  return goalsArr.filter(isActive).filter(g=> b.goal===g.id || goalAllKeywords(g).some(k=>k.length>2 && btext.includes(k)) );
+}
+function blkSheetOpen(id){
+  const b=blkBlocks.find(x=>x.id===id); if(!b) return;
+  blkSheetId=id; blkSheetDone=!!b.done;
+  document.getElementById('bsTitle').textContent=b.label||(b.type==='protected'?'Protected':'Block');
+  document.getElementById('bsTime').textContent=(b.allDay?'all day':(blkFmtTime(b.start)+' – '+blkFmtTime(b.end)))+' · '+BLK_DOW[b.day];
+  const dn=document.getElementById('bsDone'); dn.classList.toggle('on',blkSheetDone); dn.textContent=blkSheetDone?'✓ Done':'Mark done';
+  const rel=goalsRelatedToBlock(b);
+  const sel=document.getElementById('bsGoal');
+  if(!rel.length){ sel.innerHTML='<option value="">— no goals relate to this block —</option>'; }
+  else{ sel.innerHTML='<option value="">— no goal —</option>'+rel.map(g=>`<option value="${g.id}" ${b.goal===g.id?'selected':''}>${esc(g.title)}</option>`).join(''); }
+  let note='';
+  if(b.goal){ try{ loadContextArr(); const day=ctxFindDay(blkDateOf(b)); if(day&&day.boxes) note=day.boxes[b.goal]||''; }catch(_){} }
+  document.getElementById('bsNote').value=note;
+  document.getElementById('blkSheet').classList.add('open');
+}
+function blkSheetToggleDone(){ blkSheetDone=!blkSheetDone; const dn=document.getElementById('bsDone'); dn.classList.toggle('on',blkSheetDone); dn.textContent=blkSheetDone?'✓ Done':'Mark done'; }
+function blkSheetClose(){ document.getElementById('blkSheet').classList.remove('open'); blkSheetId=null; }
+function blkSheetSave(){
+  const b=blkBlocks.find(x=>x.id===blkSheetId); if(!b){ blkSheetClose(); return; }
+  const goalId=document.getElementById('bsGoal').value||null;
+  const note=(document.getElementById('bsNote').value||'').trim();
+  b.done=blkSheetDone; b.goal=goalId;
+  blkSaveWeek();
+  if(goalId){
+    try{
+      loadContextArr(); const dateStr=blkDateOf(b);
+      let day=ctxFindDay(dateStr); if(!day){ day={date:dateStr}; contextArr.push(day); }
+      day.boxes=day.boxes||{}; if(note) day.boxes[goalId]=note; else delete day.boxes[goalId]; day.updated=Date.now();
+      saveContextArr();
+    }catch(_){}
+  }
+  try{ recomputeGoals(); }catch(_){}
+  blkSheetClose();
+  blkRenderMobileList();
+  try{ if(currentView==='journal') ctxRenderGoalBoxes(); }catch(_){}
+  try{ renderDash(); }catch(_){}
 }
 function blkRender(){ blkGoals=read(KEYS.goals)||[]; blkLoadCats(); blkLoadWeek(); blkRenderAll(); }
 
@@ -3117,6 +3169,7 @@ function blkDoPlan(){
   document.getElementById('bfDelete').onclick=()=>{ blkRemove(blkEditId); blkCloseEditor(); };
   document.getElementById('bfCancel').onclick=blkCloseEditor;
   document.getElementById('blkOverlay').addEventListener('click',e=>{ if(e.target.id==='blkOverlay') blkCloseEditor(); });
+  document.getElementById('blkSheet').addEventListener('click',e=>{ if(e.target.id==='blkSheet') blkSheetClose(); });
   document.getElementById('bcCancel').onclick=()=>document.getElementById('blkCatOverlay').classList.remove('open');
   document.getElementById('bcSave').onclick=()=>{ const name=document.getElementById('bcName').value.trim(); if(!name) return; blkLoadCats(); blkCats.push({id:'c'+blkUid(),name,color:blkPendingSwatch}); blkSaveCats(); blkFillCats(null); document.getElementById('blkCatOverlay').classList.remove('open'); };
   document.getElementById('blkCatOverlay').addEventListener('click',e=>{ if(e.target.id==='blkCatOverlay') document.getElementById('blkCatOverlay').classList.remove('open'); });
