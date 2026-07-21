@@ -299,6 +299,11 @@
   @media(max-width:640px){.ctx-grid{grid-template-columns:1fr}}
   .ctx-datebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
   .ctx-datebar input[type=date]{background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:7px 11px;color-scheme:dark}
+  .ctx-box-head{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin:4px 0 10px}
+  .ctx-box-head span{color:var(--muted);letter-spacing:.1em}
+  .ctx-box-hint{font-size:9px;color:var(--gold);letter-spacing:.04em;margin-left:6px;text-transform:none;font-weight:400}
+  .ctx-box-empty{font-size:11px;color:var(--muted);border:1px dashed var(--border);border-radius:4px;padding:12px 14px}
+  #ctxGoalBoxes .form-group{margin-bottom:11px}
   .ctx-day{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
   .ctx-day:hover .cd-snip{color:var(--text)}
   .ctx-day .cd-date{font-size:11px;color:var(--text);width:118px;flex-shrink:0;font-variant-numeric:tabular-nums}
@@ -601,7 +606,17 @@
   /* ════ PHONE PASS (≤600px) — reflow & enlarge; PC unaffected ════ */
   @media(max-width:600px){
     body{font-size:14px}
-    .main{padding:18px 12px 72px}
+    /* NAV: narrow LEFT side-rail — content flows down beside it, no sideways slide */
+    .app{flex-direction:row}
+    .sidebar{flex-direction:column;width:94px;height:100vh;position:sticky;top:0;overflow-y:auto;align-items:stretch;gap:13px;padding:12px 7px;border-right:1px solid var(--border);border-bottom:none}
+    .brand{flex-direction:column;align-items:flex-start;gap:2px;padding:2px 4px}
+    .mark{font-size:15px;line-height:1}.tag{display:none}
+    nav{display:flex;flex-direction:column;gap:2px;flex:none}
+    .navtab{border:none;border-left:2px solid transparent;border-radius:0 3px 3px 0;text-align:left;white-space:normal;padding:10px 7px;font-size:9.5px;letter-spacing:.06em;line-height:1.25}
+    .navtab[aria-selected="true"]{border-left:2px solid var(--gold);border-bottom-color:transparent;background:var(--surface2)}
+    .side-foot{margin-top:auto;flex-direction:column;align-items:flex-start;gap:7px;padding:0 4px}
+    .sys .val{font-size:13px}
+    .main{flex:1;min-width:0;padding:16px 13px 60px}
     .panel{padding:16px 15px}
     /* kill iOS input zoom + fatten touch targets */
     .form-input,.form-select,.form-textarea,.habit-input,.habit-cat-select,.lk-set select,.lk-set input,.ctx-datebar input[type=date],textarea,input[type=text],input[type=number],input[type=date],input[list],select,.stepper-input{font-size:16px !important;padding:11px 12px}
@@ -613,10 +628,6 @@
     .tier-tab{padding:12px 16px;font-size:11px}
     .cat-filter{padding:8px 14px;font-size:11px}
     .goal-btn{padding:8px 12px}
-    /* nav bigger */
-    .sidebar{padding:9px 10px;gap:10px}
-    .navtab{font-size:12px;padding:12px 13px}
-    .mark{font-size:20px}
     /* rein in big serif so nothing overflows */
     .hero h2{font-size:23px}.hero{padding:26px 18px}
     .cell .n{font-size:26px}.cell{padding:14px 12px}
@@ -640,7 +651,7 @@
       <button class="navtab" role="tab" aria-selected="false" data-view="goal">Goals</button>
       <button class="navtab" role="tab" aria-selected="false" data-view="block">Blocks</button>
       <button class="navtab" role="tab" aria-selected="false" data-view="soccer">Soccer</button>
-      <button class="navtab" role="tab" aria-selected="false" data-view="journal">Journal</button>
+      <button class="navtab" role="tab" aria-selected="false" data-view="journal">Log</button>
       <button class="navtab" role="tab" aria-selected="false" data-view="review">Review</button>
       <button class="navtab" role="tab" aria-selected="false" data-view="data">Data</button>
     </nav>
@@ -1088,6 +1099,7 @@
           <div class="ctx-scale"><input type="range" id="ctxPressure" min="1" max="10" value="5" oninput="ctxSlide('Pressure')"><span class="ctx-num" id="ctxPressureN">5</span></div>
         </div>
       </div>
+      <div id="ctxGoalBoxes" style="margin-top:10px"></div>
       <div class="ctx-grid">
         <div class="form-group span2"><label class="form-label">Context — what today was about</label><textarea class="form-textarea" id="ctxContext" style="min-height:74px"></textarea></div>
         <div class="form-group"><label class="form-label">Progression — what moved forward</label><textarea class="form-textarea" id="ctxProgression"></textarea></div>
@@ -1114,28 +1126,6 @@
       <div id="ctxList" style="margin-top:10px"></div>
     </div>
     </div>
-    <div class="eyebrow" style="margin-top:26px">Journal — everything-else log</div>
-    <div class="panel">
-      <h3>New entry</h3>
-      <div class="sub">log anything that moves a goal — outreach, study, revenue, reading, recovery…</div>
-      <div class="jrnl-form" style="margin-top:14px">
-        <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="jDate" placeholder="today" autocomplete="off"></div>
-        <div class="form-group"><label class="form-label">Life area</label><select class="form-select" id="jCat"></select></div>
-        <div class="form-group"><label class="form-label">Activity (optional)</label><input class="form-input" id="jActivity" list="jActList" placeholder="e.g. Outreach, Deep work, Reading" autocomplete="off"><datalist id="jActList"></datalist></div>
-        <div class="form-group"><label class="form-label">Contributes to goal (optional)</label><select class="form-select" id="jGoal" onchange="jFillMilestones()"></select></div>
-        <div class="form-group" id="jMilestoneWrap" style="display:none"><label class="form-label">Toward milestone (optional)</label><select class="form-select" id="jMilestone"></select></div>
-        <div class="form-group span2"><label class="form-label">What happened</label><input class="form-input" id="jTitle" placeholder="Short headline" autocomplete="off"></div>
-        <div class="form-group"><label class="form-label">Amount (optional)</label><div style="display:flex;gap:8px"><input class="form-input" id="jValue" type="number" step="any" placeholder="20" style="flex:1;min-width:0"><input class="form-input" id="jUnit" placeholder="unit — pages · $ · hrs · reps" style="flex:1.5;min-width:0" autocomplete="off"></div></div>
-        <div class="form-group"><label class="form-label">Time spent (min, optional)</label><input class="form-input" id="jDuration" type="number" placeholder="e.g. 45"></div>
-        <div class="form-group"><label class="form-label">How it went (optional)</label><select class="form-select" id="jRating"><option value="">—</option><option value="1">★ 1</option><option value="2">★★ 2</option><option value="3">★★★ 3</option><option value="4">★★★★ 4</option><option value="5">★★★★★ 5</option></select></div>
-        <div class="form-group"><label class="form-label">Tags (optional)</label><input class="form-input" id="jTags" placeholder="comma, separated" autocomplete="off"></div>
-        <div class="form-group span2"><label class="form-label">Notes (optional)</label><textarea class="form-textarea" id="jNote"></textarea></div>
-      </div>
-      <div class="btnrow" style="justify-content:flex-start;margin-top:12px"><button class="btn" onclick="addJournalEntry()">＋ Log entry</button></div>
-      <div class="note" id="jResult"></div>
-    </div>
-    <div class="cat-filters" id="jFilters"></div>
-    <div id="journalList"></div>
   </section>
 
 
@@ -1234,9 +1224,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron-constantin-overseas-2113";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -1892,7 +1882,50 @@ function ctxLoadDay(){
   document.getElementById('ctxProgression').value=e.progression||'';
   document.getElementById('ctxActivities').value=e.activities||'';
   document.getElementById('ctxDecisions').value=e.decisions||'';
+  ctxRenderGoalBoxes();
   const r=document.getElementById('ctxResult'); if(r){ r.className='note'; r.textContent=''; }
+}
+function blocksForDate(dateStr){
+  const d=new Date(dateStr+'T00:00:00'); if(isNaN(d.getTime())) return [];
+  const key=blkWeekKey(blkSundayOf(d)); const dayIdx=(d.getDay()+6)%7;
+  return (read(key)||[]).filter(b=>b&&b.placed&&b.day===dayIdx);
+}
+function goalAllKeywords(g){
+  const kws=new Set();
+  const add=(lk,txt)=>{ if(lk&&lk.src==='mention'&&lk.keywords) lk.keywords.forEach(k=>kws.add(String(k).toLowerCase())); else suggestKeywords(txt).split(',').forEach(s=>{s=s.trim().toLowerCase(); if(s.length>2)kws.add(s);}); };
+  add(g.link, g.title); (g.checkpoints||[]).forEach(cp=>add(cp.link, cp.text));
+  return [...kws];
+}
+function goalMentionKeywords(g){
+  const kws=new Set();
+  if(g.link&&g.link.src==='mention'&&g.link.keywords) g.link.keywords.forEach(k=>kws.add(String(k)));
+  (g.checkpoints||[]).forEach(cp=>{ if(cp.link&&cp.link.src==='mention'&&cp.link.keywords) cp.link.keywords.forEach(k=>kws.add(String(k))); });
+  return [...kws];
+}
+function dayGoalMatches(dateStr){
+  const blocks=blocksForDate(dateStr); if(!blocks.length) return [];
+  try{ if(!blkCats||!blkCats.length) blkLoadCats(); }catch(_){}
+  const blockTexts=blocks.map(b=>{ let cn=''; try{ const c=blkCatById(b.category); cn=(c&&c.name)||''; }catch(_){} return ((b.label||'')+' '+cn).toLowerCase(); });
+  const linkedGoalIds=new Set(blocks.map(b=>b.goal).filter(Boolean));
+  loadGoals();
+  const out=[];
+  goalsArr.filter(isActive).forEach(g=>{
+    let matched=linkedGoalIds.has(g.id);
+    if(!matched){ matched=goalAllKeywords(g).some(k=>k.length>2 && blockTexts.some(t=>t.includes(k))); }
+    if(matched) out.push({id:g.id, title:g.title, mentionKw:goalMentionKeywords(g)});
+  });
+  return out;
+}
+function ctxRenderGoalBoxes(){
+  const host=document.getElementById('ctxGoalBoxes'); if(!host) return;
+  const dateStr=(document.getElementById('ctxDate')||{}).value||ctxToday();
+  const matches=dayGoalMatches(dateStr);
+  const e=ctxFindDay(dateStr)||{}; const boxes=e.boxes||{};
+  if(!matches.length){ host.innerHTML='<div class="ctx-box-empty">No goal boxes today — they appear when the day has blocks tied to a goal. Reflect below and any keywords still count.</div>'; return; }
+  host.innerHTML='<div class="ctx-box-head">Today’s focus <span>— from your blocks</span></div>'+matches.map(m=>{
+    const hint = m.mentionKw.length? `<span class="ctx-box-hint">mention: ${m.mentionKw.map(esc).join(', ')}</span>` : '';
+    return `<div class="form-group"><label class="form-label">${esc(m.title)}${hint}</label><textarea class="form-textarea" id="ctxbox-${m.id}" data-goalbox="${m.id}">${esc(boxes[m.id]||'')}</textarea></div>`;
+  }).join('');
 }
 function ctxSetToday(){ const d=document.getElementById('ctxDate'); if(d) d.value=ctxToday(); ctxLoadDay(); }
 function saveContextDay(){
@@ -1905,6 +1938,7 @@ function saveContextDay(){
     progression:document.getElementById('ctxProgression').value.trim(),
     activities:document.getElementById('ctxActivities').value.trim(),
     decisions:document.getElementById('ctxDecisions').value.trim(),
+    boxes:(function(){ const o={}; try{ document.querySelectorAll('[data-goalbox]').forEach(el=>{ const v=(el.value||'').trim(); if(v) o[el.getAttribute('data-goalbox')]=v; }); }catch(_){}; return o; })(),
     updated:Date.now() };
   const i=contextArr.findIndex(e=>e.date===date);
   if(i>=0) contextArr[i]=entry; else contextArr.push(entry);
@@ -1967,7 +2001,7 @@ function show(view){
   if(view==='goal') renderGoals();
   if(view==='block') blkRender();
   if(view==='review') renderReview();
-  if(view==='journal'){ renderContext(); renderJournal(); }
+  if(view==='journal'){ renderContext(); }
 }
 document.querySelectorAll('.navtab').forEach(t=>t.addEventListener('click',()=>show(t.dataset.view)));
 document.getElementById('goImport').addEventListener('click',()=>{ show('data'); document.getElementById('impText').focus(); });
@@ -2080,7 +2114,7 @@ function linkCount(g, link, cpId){
     const kws=(link.keywords||[]).map(k=>String(k).toLowerCase().trim()).filter(Boolean); if(!kws.length) return 0;
     const hit=txt=>{ const t=String(txt||'').toLowerCase(); return kws.some(k=>t.includes(k)); };
     const scope=link.scope||'both'; const days=new Set();
-    if(scope!=='journal'){ (read(KEYS.days)||[]).forEach(e=>{ if(!e) return; const t=Date.parse((e.date||'')+'T00:00:00'); if(isNaN(t)||!inWin(t)||!sinceOk(t)) return; if(hit([e.context,e.progression,e.activities,e.decisions].join(' \u2022 '))) days.add(e.date); }); }
+    if(scope!=='journal'){ (read(KEYS.days)||[]).forEach(e=>{ if(!e) return; const t=Date.parse((e.date||'')+'T00:00:00'); if(isNaN(t)||!inWin(t)||!sinceOk(t)) return; if(hit([e.context,e.progression,e.activities,e.decisions].concat(Object.values(e.boxes||{})).join(' \u2022 '))) days.add(e.date); }); }
     if(scope!=='context'){ (read(KEYS.journal)||[]).forEach(e=>{ if(!e||e.archived) return; const t=journalTime(e); if(!inWin(t)||!sinceOk(t)) return; if(hit([e.title,e.note,e.activity,(e.tags||[]).join(' ')].join(' \u2022 '))) days.add(new Date(t).toISOString().slice(0,10)); }); }
     return days.size;
   }
