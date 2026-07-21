@@ -1237,9 +1237,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -1532,7 +1532,7 @@ function fillConsistency(){
     habits.forEach(h=>{ if(h.days&&h.days[idx]==='1'){ hTot++; if(h.ticks&&h.ticks[key]===1) hDone++; } }); }
   const habitRatio=hTot?hDone/hTot:null;
   const sunday=new Date(now); sunday.setDate(now.getDate()-((now.getDay()+6)%7));
-  const blocks=(read(WK_PREFIX+dateKey(sunday))||[]).filter(b=>b.placed&&!b.locked&&b.type==='work');
+  const blocks=(read(WK_PREFIX+dateKey(sunday))||[]).filter(b=>b.placed&&b.type==='work');
   const dow=(now.getDay()+6)%7; const due=blocks.filter(b=>b.day<=dow); const dueDone=due.filter(b=>b.done);
   const blockRatio=due.length?dueDone.length/due.length:null;
   const planned=blocks.filter(b=>blockSessionType(b)).length;
@@ -1559,7 +1559,7 @@ function weekScore(sunday, isCurrent){
   for(let d=new Date(sunday); d<=last; d.setDate(d.getDate()+1)){ const idx=(d.getDay()+6)%7; const key=dateKey(d);
     habits.forEach(h=>{ if(h.days&&h.days[idx]==='1'){ hTot++; if(h.ticks&&h.ticks[key]===1)hDone++; } }); }
   const habitRatio=hTot?hDone/hTot:null;
-  const blocks=(read(WK_PREFIX+dateKey(sunday))||[]).filter(b=>b.placed&&!b.locked&&b.type==='work');
+  const blocks=(read(WK_PREFIX+dateKey(sunday))||[]).filter(b=>b.placed&&b.type==='work');
   const dow=isCurrent?(today.getDay()+6)%7:6; const due=blocks.filter(b=>b.day<=dow); const dueDone=due.filter(b=>b.done);
   const blockRatio=due.length?dueDone.length/due.length:null;
   const planned=blocks.filter(b=>blockSessionType(b)).length;
@@ -1615,7 +1615,7 @@ function renderReview(){
   let hTot=0,hDone=0; for(let d=new Date(mon);d<=now;d.setDate(d.getDate()+1)){ const idx=(d.getDay()+6)%7; const k=dateKey(d); habits.forEach(h=>{ if(h.days&&h.days[idx]==='1'){ hTot++; if(h.ticks&&h.ticks[k]===1)hDone++; } }); }
   const habitPct=hTot?Math.round(hDone/hTot*100):null;
   const sun=new Date(now); sun.setDate(now.getDate()-((now.getDay()+6)%7));
-  const blocks=(read(WK_PREFIX+dateKey(sun))||[]).filter(b=>b.placed&&!b.locked&&b.type==='work');
+  const blocks=(read(WK_PREFIX+dateKey(sun))||[]).filter(b=>b.placed&&b.type==='work');
   const dow=(now.getDay()+6)%7; const due=blocks.filter(b=>b.day<=dow); const dueDone=due.filter(b=>b.done);
   const stats=[
     {n:sessions.length,k:'sessions',g:true},
@@ -1917,16 +1917,8 @@ function goalMentionKeywords(g){
 }
 function dayGoalMatches(dateStr){
   const blocks=blocksForDate(dateStr); if(!blocks.length) return [];
-  try{ if(!blkCats||!blkCats.length) blkLoadCats(); }catch(_){}
-  const blockTexts=blocks.map(b=>{ let cn=''; try{ const c=blkCatById(b.category); cn=(c&&c.name)||''; }catch(_){} return ((b.label||'')+' '+cn).toLowerCase(); });
-  const linkedGoalIds=new Set(blocks.map(b=>b.goal).filter(Boolean));
-  loadGoals();
-  const out=[];
-  goalsArr.filter(isActive).forEach(g=>{
-    let matched=linkedGoalIds.has(g.id);
-    if(!matched){ matched=goalAllKeywords(g).some(k=>k.length>2 && blockTexts.some(t=>t.includes(k))); }
-    if(matched) out.push({id:g.id, title:g.title, mentionKw:goalMentionKeywords(g)});
-  });
+  const seen=new Set(); const out=[];
+  blocks.forEach(b=>{ goalsRelatedToBlock(b).forEach(g=>{ if(!seen.has(g.id)){ seen.add(g.id); out.push({id:g.id, title:g.title, mentionKw:goalMentionKeywords(g)}); } }); });
   return out;
 }
 function ctxRenderGoalBoxes(){
@@ -2816,24 +2808,23 @@ function blkPackDay(dayBlocks){
 }
 function blkMakeEl(b,layout,dayView){
   const el=document.createElement('div'); const dur=b.end-b.start; const c=blkCatById(b.category);
-  el.className='block'+(b.type==='protected'?' protected':'')+(b.locked?' locked':'')+(dur<=30?' tiny':'')+(b.done?' done':'')+(dayView&&!b.allDay?' haschk':'');
+  el.className='block'+(b.type==='protected'?' protected':'')+(dur<=30?' tiny':'')+(b.done?' done':'')+(dayView&&!b.allDay?' haschk':'');
   const top=(b.start-BLK_DAY_START)/BLK_SLOT*BLK_ROW, h=Math.max(dur/BLK_SLOT*BLK_ROW,BLK_ROW);
   const lay=layout[b.id]||{col:0,cols:1}; const w=100/lay.cols;
   el.style.top=top+'px'; el.style.height=(h-2)+'px'; el.style.left=`calc(${lay.col*w}% + 2px)`; el.style.width=`calc(${w}% - 4px)`;
-  if(b.type==='work'&&!b.locked&&c){ el.style.background=blkHexA(c.color,.14); el.style.borderColor=blkHexA(c.color,.34); }
-  else if(b.locked&&c){ el.style.background=blkHexA(c.color,.10); el.style.borderColor=blkHexA(c.color,.28); }
-  let bar=''; if(b.type==='work'&&!b.locked&&c) bar=`<span class="b-bar" style="background:${c.color}"></span>`; else if(b.locked&&c) bar=`<span class="b-bar" style="background:${c.color};opacity:.7"></span>`; else if(b.locked) bar='<span class="b-bar"></span>';
-  const corner=b.locked?BLK_LOCK:(b.priority&&b.priority!=='none'?`<span class="pri">${b.priority==='high'?'★★★':b.priority==='med'?'★★':'★'}</span>`:'');
+  if(b.type==='work'&&c){ el.style.background=blkHexA(c.color,.14); el.style.borderColor=blkHexA(c.color,.34); }
+  let bar=''; if(b.type==='work'&&c) bar=`<span class="b-bar" style="background:${c.color}"></span>`;
+  const fromCal=b.source==='gcal';
+  const corner=(b.priority&&b.priority!=='none')?`<span class="pri">${b.priority==='high'?'★★★':b.priority==='med'?'★★':'★'}</span>`:(fromCal?BLK_LOCK:'');
   const g=b.goal?blkGoalById(b.goal):null;
-  let catName=b.locked?('Locked · '+(c?c.name:'calendar')):(b.type==='protected'?'Reset · protected':(c?c.name:''));
+  let catName=(b.type==='protected'?'Reset · protected':(c?c.name:''))+(fromCal?(c?' · 📅':'📅 calendar'):'');
   if(g&&!dayView) catName=(catName?catName+' ':'')+'⚑';
   const chk=(dayView&&!b.allDay)?`<div class="donechk" data-chk="1">✓</div>`:'';
   const goalLine=(dayView&&g)?`<div class="b-goal">⚑ ${esc(g.title)}</div>`:'';
   const noteLine=(dayView&&b.notes)?`<div class="b-notes">${esc(b.notes)}</div>`:'';
   el.innerHTML=`${bar}${corner}${chk}<div class="b-time">${blkFmtTime(b.start)}–${blkFmtTime(b.end)}</div><div class="b-label">${esc(b.label||(b.type==='protected'?'Protected':'Untitled'))}</div><div class="b-cat">${catName}</div>${goalLine}${noteLine}`;
   const chkEl=el.querySelector('[data-chk]'); if(chkEl) chkEl.addEventListener('pointerdown',e=>{ e.stopPropagation(); blkToggleDone(b.id); });
-  if(b.locked) el.addEventListener('click',e=>{ e.stopPropagation(); if(confirm('Imported event "'+(b.label||'event')+'" — remove it?')) blkRemove(b.id); });
-  else el.addEventListener('pointerdown',e=>{ if(e.target.dataset.chk) return; blkBeginDrag(e,b.id,false); });
+  el.addEventListener('pointerdown',e=>{ if(e.target.dataset.chk) return; blkBeginDrag(e,b.id,false); });
   return el;
 }
 function blkPlace(colEl,i,dayView){
@@ -2878,7 +2869,7 @@ function blkRenderDayBar(){
   for(let i=0;i<7;i++){ const dd=blkAddDays(blkWeekStart,i); const t=document.createElement('button'); t.className='blk-dtab'+(i===blkDay?' on':'')+(blkIsToday(i)?' today':'');
     t.innerHTML=`<span class="d">${BLK_DOW[i]}</span><span class="n">${dd.getDate()}</span>`; t.onclick=()=>{ blkDay=i; blkRenderDay(); blkScrollDay(); }; tabs.appendChild(t); }
   const nn=document.getElementById('blkNowNext');
-  if(!blkIsToday(blkDay)){ const cnt=blkBlocks.filter(b=>b.placed&&b.day===blkDay&&!b.allDay).length; const hrs=blkBlocks.filter(b=>b.placed&&b.day===blkDay&&!b.allDay&&!b.locked&&b.type==='work').reduce((s,b)=>s+(b.end-b.start)/60,0);
+  if(!blkIsToday(blkDay)){ const cnt=blkBlocks.filter(b=>b.placed&&b.day===blkDay&&!b.allDay).length; const hrs=blkBlocks.filter(b=>b.placed&&b.day===blkDay&&!b.allDay&&b.type==='work').reduce((s,b)=>s+(b.end-b.start)/60,0);
     nn.innerHTML=`<div class="nn"><span class="k">This day</span><span class="v soft">${cnt} block${cnt!==1?'s':''} · ${hrs.toFixed(1)}h work</span></div>`; return; }
   const now=blkNowMin(); const todays=blkBlocks.filter(b=>b.placed&&b.day===blkDay&&!b.allDay).sort((a,b)=>a.start-b.start);
   const cur=todays.find(b=>b.start<=now&&now<b.end); const nxt=todays.find(b=>b.start>now);
@@ -2888,11 +2879,11 @@ function blkRenderDayBar(){
 }
 function blkScrollDay(){ const today=blkIsToday(blkDay); const target=today?Math.max(0,(blkNowMin()-BLK_DAY_START)/BLK_SLOT*BLK_ROW-120):(420-BLK_DAY_START)/BLK_SLOT*BLK_ROW-40; document.getElementById('blkGridWrap').scrollTop=target; }
 function blkRenderLedger(){
-  const byCat={}; let prot=0, work=0, cal=0;
+  const byCat={}; let prot=0, work=0;
   blkBlocks.filter(b=>b.placed).forEach(b=>{ if(b.allDay) return; const dur=(b.end-b.start)/60;
-    if(b.locked){ cal+=dur; return; } if(b.type==='protected') prot+=dur; else { work+=dur; byCat[b.category]=(byCat[b.category]||0)+dur; } });
+    if(b.type==='protected') prot+=dur; else { work+=dur; byCat[b.category]=(byCat[b.category]||0)+dur; } });
   const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([id,h])=>{ const c=blkCatById(id); return `<span><span class="dot" style="background:${c?c.color:'#999'}"></span>${c?esc(c.name):id} <span class="num">${h.toFixed(1)}h</span></span>`; }).join('');
-  document.getElementById('blkLedger').innerHTML=`<span>Allocated <span class="num">${work.toFixed(1)}h</span></span><span>Protected <span class="num">${prot.toFixed(1)}h</span></span><span>Calendar <span class="num">${cal.toFixed(1)}h</span></span>${top}`;
+  document.getElementById('blkLedger').innerHTML=`<span>Allocated <span class="num">${work.toFixed(1)}h</span></span><span>Protected <span class="num">${prot.toFixed(1)}h</span></span>${top}`;
 }
 function blkRenderTray(){
   const host=document.getElementById('blkTrayScroll'); host.innerHTML='';
@@ -2931,7 +2922,7 @@ function blkRenderMobileList(){
       const c=blkCatById(b.category); const col=b.type==='protected'?'var(--muted)':(c?c.color:'var(--dim)');
       const time=b.allDay?'all day':(blkFmtTime(b.start)+' – '+blkFmtTime(b.end));
       const name=esc(b.label||(b.type==='protected'?'Protected':'Untitled'));
-      html+=`<div class="ml-block${b.done?' done':''}" onclick="blkSheetOpen('${b.id}')"><span class="ml-dot" style="background:${col}"></span><span class="ml-time">${time}</span><span class="ml-name">${name}${b.locked?' <span class="ml-lock">🔒</span>':''}</span></div>`;
+      html+=`<div class="ml-block${b.done?' done':''}" onclick="blkSheetOpen('${b.id}')"><span class="ml-dot" style="background:${col}"></span><span class="ml-time">${time}</span><span class="ml-name">${name}${b.source==='gcal'?' <span class="ml-lock">📅</span>':''}</span></div>`;
     });
     html+='</div>';
   }
@@ -2943,8 +2934,15 @@ function goalsRelatedToBlock(b){
   try{ if(!blkCats||!blkCats.length) blkLoadCats(); }catch(_){}
   let cn=''; try{ const c=blkCatById(b.category); cn=(c&&c.name)||''; }catch(_){}
   const btext=((b.label||'')+' '+cn).toLowerCase();
+  let bType=null; try{ bType=blockSessionType(b); }catch(_){}
   loadGoals();
-  return goalsArr.filter(isActive).filter(g=> b.goal===g.id || goalAllKeywords(g).some(k=>k.length>2 && btext.includes(k)) );
+  return goalsArr.filter(isActive).filter(g=>{
+    if(b.goal===g.id) return true;
+    if(goalAllKeywords(g).some(k=>k.length>2 && btext.includes(k))) return true;
+    const types=[]; if(g.link&&g.link.type) types.push(g.link.type);
+    (g.checkpoints||[]).forEach(cp=>{ if(cp&&cp.link&&cp.link.src==='soccer'&&cp.link.type) types.push(cp.link.type); });
+    return types.some(t=> t===bType || btext.includes(t));
+  });
 }
 function blkSheetOpen(id){
   const b=blkBlocks.find(x=>x.id===id); if(!b) return;
@@ -2991,7 +2989,7 @@ function blkShowGhost(col,start,dur,bad){ blkClearGhost(); const g=document.crea
 function blkClearGhost(){ const g=document.getElementById('__blkgg'); if(g) g.remove(); }
 function blkBeginDrag(e,id,fromTray){
   if(e.button!==undefined&&e.button!==0) return;
-  const b=blkBlocks.find(x=>x.id===id); if(!b||b.locked) return;
+  const b=blkBlocks.find(x=>x.id===id); if(!b) return;
   const dur=fromTray? b.dur : (b.end-b.start);
   blkDrag={id,fromTray,dur,sx:e.clientX,sy:e.clientY,moved:false,target:null};
   const fg=document.getElementById('blkFloatGhost'); fg.textContent=(b.label||(b.type==='protected'?'Protected':'Untitled'))+' · '+blkFmtDur(dur);
@@ -3022,7 +3020,7 @@ function blkDragUp(){
 function blkToggleDone(id){
   const b=blkBlocks.find(x=>x.id===id); if(!b) return;
   b.done=!b.done; blkSaveWeek(); blkRenderAll();
-  if(b.done&&!b.locked){ const st=blockSessionType(b); if(st){ const dateObj=blkAddDays(blkWeekStart,b.day); blkRouteToLog(st,b.label,dateObj,b.end-b.start); } }
+  if(b.done){ const st=blockSessionType(b); if(st){ const dateObj=blkAddDays(blkWeekStart,b.day); blkRouteToLog(st,b.label,dateObj,b.end-b.start); } }
 }
 function blkRemove(id){ blkBlocks=blkBlocks.filter(x=>x.id!==id); blkSaveWeek(); blkRenderAll(); }
 function blkDup(id){ const b=blkBlocks.find(x=>x.id===id); if(!b) return; const dur=b.dur!=null?b.dur:(b.end-b.start);
@@ -3050,7 +3048,7 @@ function blkOpenCreate(){
   document.getElementById('bfWarn').classList.remove('show'); document.getElementById('blkOverlay').classList.add('open'); document.getElementById('bfLabel').focus();
 }
 function blkOpenEditor(id){
-  const b=blkBlocks.find(x=>x.id===id); if(!b||b.locked) return;
+  const b=blkBlocks.find(x=>x.id===id); if(!b) return;
   blkEditId=id; blkMode=b.placed?'placed':'tray'; blkDraftType=b.type; blkDraftPri=b.priority||'none';
   document.getElementById('blkMTitle').textContent=b.type==='protected'?'Protected time':'Work block';
   document.getElementById('bfLabel').value=b.label||''; document.getElementById('bfNotes').value=b.notes||''; blkDurOptions(); blkFillCats(b.category); blkFillGoals(b.goal||null);
@@ -3103,7 +3101,7 @@ function blkDoImport(){
     if(!ev||!ev.date){ skipped++; continue; } const dt=new Date(ev.date+'T00:00:00'); if(isNaN(dt.getTime())){ skipped++; continue; }
     const wk=blkWeekKey(blkSundayOf(dt)); const di=(dt.getDay()+6)%7; let start=BLK_DAY_START,end=BLK_DAY_START,allDay=false;
     if(ev.allDay){ allDay=true; } else { const hm=s=>{ const m=(s||'').match(/^(\d{1,2}):(\d{2})$/); return m?(+m[1])*60+(+m[2]):null; }; const s=hm(ev.start), e=hm(ev.end); if(s==null){ skipped++; continue; } start=s; end=e!=null?e:s+60; }
-    (byWeek[wk]=byWeek[wk]||[]).push({id:blkUid(),placed:true,day:di,start,end,allDay,locked:true,type:'work',category:blkGuessCategory(ev.title||ev.label||''),goal:null,label:ev.title||ev.label||'Event',notes:'',priority:'none',done:false,source:'gcal'});
+    (byWeek[wk]=byWeek[wk]||[]).push({id:blkUid(),placed:true,day:di,start,end,allDay,type:'work',category:blkGuessCategory(ev.title||ev.label||''),goal:null,label:ev.title||ev.label||'Event',notes:'',priority:'none',done:false,source:'gcal'});
     count++;
   }
   for(const wk of Object.keys(byWeek)){ let ex= wk===blkWeekKey(blkWeekStart)? blkBlocks.slice() : ((read(wk))||[]); ex=ex.filter(b=>b.source!=='gcal').concat(byWeek[wk]); write(wk,ex); if(wk===blkWeekKey(blkWeekStart)) blkBlocks=ex; }
