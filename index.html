@@ -901,6 +901,7 @@
       <div class="warn" id="bfWarn"></div>
       <div class="modal-foot">
         <button class="btn ghost" id="bfDelete" style="margin-right:auto;color:var(--red);border-color:rgba(158,107,107,.4)">Delete</button>
+        <button class="btn ghost" id="bfComplete" style="color:var(--green);border-color:rgba(107,158,114,.4)">✓ Done / log</button>
         <button class="btn ghost" id="bfCancel">Cancel</button>
         <button class="btn" id="bfSave">Add to tray</button>
       </div>
@@ -2978,7 +2979,7 @@ function blkSheetSave(){
   }
   try{ recomputeGoals(); }catch(_){}
   blkSheetClose();
-  blkRenderMobileList();
+  blkRenderAll();
   try{ if(currentView==='journal') ctxRenderGoalBoxes(); }catch(_){}
   try{ renderDash(); }catch(_){}
 }
@@ -3045,7 +3046,7 @@ function blkOpenCreate(){
   blkSyncType();
   document.getElementById('bfDurField').style.display='block'; document.getElementById('bfPlaceFields').style.display='none';
   document.getElementById('bfDurH').value=1; document.getElementById('bfDurM').value=0;
-  document.getElementById('bfDelete').style.display='none'; document.getElementById('bfSave').textContent='Add to tray';
+  document.getElementById('bfDelete').style.display='none'; document.getElementById('bfComplete').style.display='none'; document.getElementById('bfSave').textContent='Add to tray';
   document.getElementById('bfWarn').classList.remove('show'); document.getElementById('blkOverlay').classList.add('open'); document.getElementById('bfLabel').focus();
 }
 function blkOpenEditor(id){
@@ -3062,7 +3063,7 @@ function blkOpenEditor(id){
     blkTimeOptions(document.getElementById('bfStart'),b.start); blkTimeOptions(document.getElementById('bfEnd'),b.end);
   } else { document.getElementById('bfDurField').style.display='block'; document.getElementById('bfPlaceFields').style.display='none';
     document.getElementById('bfDurH').value=Math.floor(b.dur/60); document.getElementById('bfDurM').value=b.dur%60; }
-  document.getElementById('bfDelete').style.display='block'; document.getElementById('bfSave').textContent='Save';
+  document.getElementById('bfDelete').style.display='block'; document.getElementById('bfComplete').style.display=(blkMode==='placed'?'':'none'); document.getElementById('bfSave').textContent='Save';
   document.getElementById('bfWarn').classList.remove('show'); document.getElementById('blkOverlay').classList.add('open'); document.getElementById('bfLabel').focus();
 }
 function blkCloseEditor(){ document.getElementById('blkOverlay').classList.remove('open'); blkEditId=null; }
@@ -3168,6 +3169,7 @@ function blkDoPlan(){
   document.getElementById('bfSave').onclick=blkDoSave;
   document.getElementById('bfDelete').onclick=()=>{ blkRemove(blkEditId); blkCloseEditor(); };
   document.getElementById('bfCancel').onclick=blkCloseEditor;
+  document.getElementById('bfComplete').onclick=()=>{ const id=blkEditId; blkCloseEditor(); blkSheetOpen(id); };
   document.getElementById('blkOverlay').addEventListener('click',e=>{ if(e.target.id==='blkOverlay') blkCloseEditor(); });
   document.getElementById('blkSheet').addEventListener('click',e=>{ if(e.target.id==='blkSheet') blkSheetClose(); });
   document.getElementById('bcCancel').onclick=()=>document.getElementById('blkCatOverlay').classList.remove('open');
