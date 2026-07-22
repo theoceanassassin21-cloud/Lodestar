@@ -304,6 +304,26 @@
   .ctx-box-hint{font-size:9px;color:var(--gold);letter-spacing:.04em;margin-left:6px;text-transform:none;font-weight:400}
   .ctx-box-empty{font-size:11px;color:var(--muted);border:1px dashed var(--border);border-radius:4px;padding:12px 14px}
   #ctxGoalBoxes .form-group{margin-bottom:11px}
+  .goal-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .gchip{font-size:11px;padding:6px 11px;border:1px solid var(--border2);border-radius:2px;color:var(--muted);cursor:pointer;background:none;font-family:'DM Mono',monospace;transition:all .15s}
+  .gchip:hover{border-color:var(--gold);color:var(--dim)}
+  .gchip.on{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+  .lkc{margin-top:12px;border:1px solid var(--border);border-radius:4px;padding:10px 8px;background:var(--surface)}
+  .lkc-hd{font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:7px}
+  .lkc-top{display:flex;align-items:center;gap:6px}
+  .lkc-arrow{background:none;border:1px solid var(--border);color:var(--dim);width:26px;height:26px;border-radius:2px;cursor:pointer;font-size:15px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .lkc-arrow:hover{border-color:var(--gold);color:var(--gold)}
+  .lkc-arrow.ghost{border:none;background:none;cursor:default}
+  .lkc-body{flex:1;min-width:0;text-align:center}
+  .lkc-scope{font-size:11px;color:var(--text)}
+  .lkc-count-i{font-size:9px;color:var(--muted);margin-left:6px;font-family:'DM Mono',monospace}
+  .lkc-src{font-size:10px;color:var(--dim);margin-top:2px}
+  .lkc-kw{font-size:10px;color:var(--gold);margin-top:3px}
+  .lkc-prog{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .lkc-bar{flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+  .lkc-bar span{display:block;height:100%;background:var(--gold)}
+  .lkc-num{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .lkc-num.met{color:var(--green)}
   .ctx-day{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
   .ctx-day:hover .cd-snip{color:var(--text)}
   .ctx-day .cd-date{font-size:11px;color:var(--text);width:118px;flex-shrink:0;font-variant-numeric:tabular-nums}
@@ -857,7 +877,7 @@
 
     <div class="blk-gridwrap" id="blkGridWrap">
       <div class="grid" id="blkGrid"></div>
-      <div class="blk-emptynote" id="blkEmptyNote" style="display:none"><b>Add a block</b>, then drag it from the tray onto a day.<br>Import your calendar to lock in fixed events.</div>
+      <div class="blk-emptynote" id="blkEmptyNote" style="display:none"><b>Add a block</b>, then drag it from the tray onto a day.<br>Import your calendar to bring in fixed events.</div>
     </div>
     <div class="blk-mobilelist" id="blkMobileList"></div>
    </div>
@@ -870,7 +890,7 @@
       <h3 id="bsTitle">Block</h3>
       <div class="sub" id="bsTime" style="margin-bottom:8px">—</div>
       <button class="bs-done" id="bsDone" onclick="blkSheetToggleDone()">Mark done</button>
-      <div class="field" style="margin-top:6px"><label class="form-label">Link to a goal</label><select class="form-select" id="bsGoal"></select></div>
+      <div class="field" style="margin-top:6px"><label class="form-label">Link to goals</label><div class="goal-chips" id="bsGoalChips"></div></div>
       <div class="field"><label class="form-label">Quick note <span style="color:var(--muted);text-transform:none;letter-spacing:0">(lands in that goal's log box)</span></label><textarea class="form-textarea" id="bsNote" style="min-height:64px"></textarea></div>
       <div class="modal-foot"><button class="btn ghost" onclick="blkSheetClose()">Cancel</button><button class="btn" onclick="blkSheetSave()">Save</button></div>
     </div>
@@ -889,7 +909,7 @@
       <div class="field"><label class="form-label">Label</label><input class="form-input" id="bfLabel" placeholder="What is this time for?" autocomplete="off"></div>
       <div class="field"><label class="form-label">Type</label><div class="seg" id="bfType"><button data-t="work" class="on">Work block</button><button data-t="protected">Protected · reset</button></div></div>
       <div class="field" id="bfCatField"><label class="form-label">Category</label><select class="form-select" id="bfCat"></select></div>
-      <div class="field" id="bfGoalField"><label class="form-label">Linked goal</label><select class="form-select" id="bfGoal"></select></div>
+      <div class="field" id="bfGoalField"><label class="form-label">Linked goals</label><div class="goal-chips" id="bfGoalChips"></div></div>
       <div class="field"><label class="form-label">Priority</label><div class="seg" id="bfPri"><button data-p="none" class="on">—</button><button data-p="low">Low</button><button data-p="med">Med</button><button data-p="high">High</button></div></div>
       <div class="field" id="bfDurField"><label class="form-label">Duration</label><div class="row2">
         <select class="form-select" id="bfDurH"></select><select class="form-select" id="bfDurM"></select></div></div>
@@ -922,7 +942,7 @@
   <div class="modal-bg" id="blkImportOverlay">
     <div class="modal">
       <h3>Import calendar</h3>
-      <div class="sub" style="font-size:11px;color:var(--dim);margin-bottom:10px">Paste a JSON array of events: <code style="color:var(--gold)">[{"date":"2026-06-23","start":"19:30","end":"21:30","title":"Practice"}]</code>. Use <code style="color:var(--gold)">"allDay":true</code> for all-day. These import as locked events.</div>
+      <div class="sub" style="font-size:11px;color:var(--dim);margin-bottom:10px">Paste a JSON array of events: <code style="color:var(--gold)">[{"date":"2026-06-23","start":"19:30","end":"21:30","title":"Practice"}]</code>. Use <code style="color:var(--gold)">"allDay":true</code> for all-day. Imported events are regular blocks — you can edit, complete and link them to goals.</div>
       <div class="field"><textarea class="form-textarea" id="bImpText" rows="7" style="font-family:'DM Mono',monospace;font-size:11px" placeholder="Paste events JSON…"></textarea></div>
       <div class="warn" id="bImpWarn"></div>
       <div class="modal-foot"><button class="btn ghost" id="bImpCancel">Cancel</button><button class="btn" id="bImpDo">Import</button></div>
@@ -960,6 +980,7 @@
             <button type="button" class="tag" onclick="toggleTag(this)">Weak foot</button>
             <button type="button" class="tag" onclick="toggleTag(this)">Fitness</button>
             <button type="button" class="tag" onclick="toggleTag(this)">Shooting</button>
+            <button type="button" class="tag" data-add="1" onclick="addFocusTag()" style="border-style:dashed;color:var(--gold)">+ add focus area</button>
           </div>
         </div>
 
@@ -1237,9 +1258,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -1351,7 +1372,7 @@ function importBackup(b64){
     if(!k.startsWith(WK_PREFIX)) return;
     const arr = safeParse(dump[k], []);
     if(!Array.isArray(arr)) return;
-    arr.forEach(b=>{ if(b && b.goal && remap[b.goal]){ b.goal = remap[b.goal]; relinked++; } });
+    arr.forEach(b=>{ if(!b) return; if(Array.isArray(b.goals)){ b.goals=b.goals.map(id=>{ if(remap[id]){ relinked++; return remap[id]; } return id; }); } else if(b.goal && remap[b.goal]){ b.goal = remap[b.goal]; relinked++; } });
     write(k, arr);
     weeks++; blocks += arr.length;
   });
@@ -1917,8 +1938,9 @@ function goalMentionKeywords(g){
 }
 function dayGoalMatches(dateStr){
   const blocks=blocksForDate(dateStr); if(!blocks.length) return [];
+  loadGoals();
   const seen=new Set(); const out=[];
-  blocks.forEach(b=>{ goalsRelatedToBlock(b).forEach(g=>{ if(!seen.has(g.id)){ seen.add(g.id); out.push({id:g.id, title:g.title, mentionKw:goalMentionKeywords(g)}); } }); });
+  blocks.forEach(b=>{ blockGoalIds(b).forEach(id=>{ if(seen.has(id)) return; const g=goalsArr.find(x=>x.id===id && isActive(x)); if(g){ seen.add(id); out.push({id:g.id, title:g.title, mentionKw:goalMentionKeywords(g)}); } }); });
   return out;
 }
 function ctxRenderGoalBoxes(){
@@ -1926,10 +1948,10 @@ function ctxRenderGoalBoxes(){
   const dateStr=(document.getElementById('ctxDate')||{}).value||ctxToday();
   const matches=dayGoalMatches(dateStr);
   const e=ctxFindDay(dateStr)||{}; const boxes=e.boxes||{};
-  if(!matches.length){ host.innerHTML='<div class="ctx-box-empty">No goal boxes today — they appear when the day has blocks tied to a goal. Reflect below and any keywords still count.</div>'; return; }
-  host.innerHTML='<div class="ctx-box-head">Today’s focus <span>— from your blocks</span></div>'+matches.map(m=>{
-    const hint = m.mentionKw.length? `<span class="ctx-box-hint">mention: ${m.mentionKw.map(esc).join(', ')}</span>` : '';
-    return `<div class="form-group"><label class="form-label">${esc(m.title)}${hint}</label><textarea class="form-textarea" id="ctxbox-${m.id}" data-goalbox="${m.id}">${esc(boxes[m.id]||'')}</textarea></div>`;
+  if(!matches.length){ host.innerHTML='<div class="ctx-box-empty">No goal boxes today — link a goal to one of today\u2019s blocks and it appears here.</div>'; return; }
+  host.innerHTML='<div class="ctx-box-head">Today’s focus <span>— from goals linked to your blocks</span></div>'+matches.map(m=>{
+    const hint = m.mentionKw.length ? `<span class="ctx-box-hint">✍ include: ${m.mentionKw.map(esc).join(', ')}</span>` : '';
+    return `<div class="form-group"><label class="form-label">${esc(m.title)}${hint}</label><textarea class="form-textarea" id="ctxbox-${m.id}" data-goalbox="${m.id}" placeholder="${m.mentionKw.length?('use: '+m.mentionKw.map(esc).join(', ')):'reflect on this'}">${esc(boxes[m.id]||'')}</textarea></div>`;
   }).join('');
 }
 function ctxSetToday(){ const d=document.getElementById('ctxDate'); if(d) d.value=ctxToday(); ctxLoadDay(); }
@@ -2179,6 +2201,33 @@ function suggestKeywords(text){
   const words=String(text||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w && !/^\d+$/.test(w) && !STOPW.has(w) && w.length>2);
   return [...new Set(words)].slice(0,3).join(', ');
 }
+let linkCarIdx={};
+function linkSourceLabel(link){
+  if(!link) return '';
+  if(link.src==='soccer'||link.type) return '⚽ '+(SESSION_LABELS[link.type]||link.type)+' sessions';
+  if(link.src==='habit'){ const h=(read(KEYS.habits)||[]).find(x=>x.id===link.habitId); return '🔁 '+(h?h.name:'habit')+' — days done'; }
+  if(link.src==='mention') return '💬 daily-log mention';
+  return '⛓ tracked';
+}
+function goalLinkList(g){
+  const links=[];
+  if(g.link&&g.link.target){ const c=countSessionsFor(g); links.push({scope:'Whole goal', link:g.link, count:c, target:g.link.target, met:c>=g.link.target}); }
+  (g.checkpoints||[]).forEach(cp=>{ if(cp&&cp.link){ links.push({scope:cp.text, link:cp.link, count:milestoneCount(g,cp), target:cp.link.target||1, met:milestoneMet(g,cp)}); } });
+  return links;
+}
+function linkCarousel(g){
+  const links=goalLinkList(g);
+  const hasMs=(g.checkpoints||[]).some(cp=>cp&&cp.link);
+  if(!links.length || !hasMs) return '';
+  let idx=linkCarIdx[g.id]||0; if(idx>=links.length) idx=0; if(idx<0) idx=links.length-1; linkCarIdx[g.id]=idx;
+  const L=links[idx], multi=links.length>1;
+  const pct=Math.min(100,Math.round(L.count/L.target*100));
+  const kw=(L.link.src==='mention'&&(L.link.keywords||[]).length)?`<div class="lkc-kw">✍ write: ${L.link.keywords.map(esc).join(', ')}</div>`:'';
+  const arL=multi?`<button class="lkc-arrow" onclick="linkCarNav('${g.id}',-1)">‹</button>`:'<span class="lkc-arrow ghost"></span>';
+  const arR=multi?`<button class="lkc-arrow" onclick="linkCarNav('${g.id}',1)">›</button>`:'<span class="lkc-arrow ghost"></span>';
+  return `<div class="lkc"><div class="lkc-hd">links${multi?' · swipe ‹ ›':''}</div><div class="lkc-top">${arL}<div class="lkc-body"><div class="lkc-scope">${esc(L.scope)}${multi?`<span class="lkc-count-i">${idx+1}/${links.length}</span>`:''}</div><div class="lkc-src">${linkSourceLabel(L.link)}</div>${kw}</div>${arR}</div><div class="lkc-prog"><div class="lkc-bar"><span style="width:${pct}%"></span></div><span class="lkc-num ${L.met?'met':''}">${L.count}/${L.target}</span></div></div>`;
+}
+function linkCarNav(gid,dir){ linkCarIdx[gid]=(linkCarIdx[gid]||0)+dir; renderGoals(); }
 function linkBox(g){
   const linked = g.link && g.link.target;
   const scope = goalTier(g)==='weekly' ? 'this week' : 'total';
@@ -2257,7 +2306,7 @@ function goalCard(g){
         <input class="stepper-input" type="number" min="0" max="100" value="${manualBase}" onchange="setProgress('${g.id}',this.value)" onblur="setProgress('${g.id}',this.value)">
         <button class="stepper-btn" onclick="adjustProgress('${g.id}',5)">+</button>
         <span class="stepper-pct">% manual</span></div>`;
-    body=msBar+stepper+linkBox(g);
+    body=msBar+stepper+linkCarousel(g)+linkBox(g);
   }
 
   return `<div class="goal-card ${g.completed?'completed':(g.incomplete?'incomplete':'')}" style="--cat-color:${colors.main};--cat-color-dim:${colors.dim};--cat-color-dim2:${colors.dim2}">
@@ -2282,7 +2331,7 @@ function goalCard(g){
 
 function goalBlockStats(goalId){
   let count=0, schedMin=0, doneMin=0;
-  weekKeys().forEach(k=>{ (read(k)||[]).forEach(b=>{ if(b&&b.goal===goalId&&!b.allDay){ count++; if(b.placed){ const d=(b.end-b.start)||0; schedMin+=d; if(b.done) doneMin+=d; } } }); });
+  weekKeys().forEach(k=>{ (read(k)||[]).forEach(b=>{ if(b&&blockGoalIds(b).includes(goalId)&&!b.allDay){ count++; if(b.placed){ const d=(b.end-b.start)||0; schedMin+=d; if(b.done) doneMin+=d; } } }); });
   const h=m=>Math.round(m/60*10)/10;
   return {count, schedH:h(schedMin), doneH:h(doneMin)};
 }
@@ -2294,7 +2343,7 @@ function blkStatLine(goalId){
 }
 function goalPlanBlock(goalId){
   show('block'); blkOpenCreate();
-  const sel=document.getElementById('bfGoal'); if(sel) sel.value=goalId;
+  const chip=document.querySelector('#bfGoalChips [data-gid="'+goalId+'"]'); if(chip) chip.classList.add('on');
   soctoast('New block linked to this goal \u2014 set duration & add');
 }
 function decadeCard(g){
@@ -2550,6 +2599,13 @@ function buildRatingBlock(cats){
 }
 function setRating(cat,val){ socRatings[cat]=val; const sid='st_'+cat.replace(/[\s\/&]/g,'_'); document.querySelectorAll('#'+sid+' .star').forEach((s,i)=>{ s.className='star'+(i<val?' on':''); }); }
 function toggleTag(el){ el.classList.toggle('active'); }
+function addFocusTag(){
+  const name=prompt('New focus area:'); if(!name||!name.trim()) return;
+  const host=document.getElementById('training-tags'); const addBtn=host.querySelector('[data-add]');
+  const b=document.createElement('button'); b.type='button'; b.className='tag active'; b.textContent=name.trim();
+  b.onclick=function(){ toggleTag(this); };
+  host.insertBefore(b, addBtn);
+}
 function getActiveTags(){ return [...document.querySelectorAll('#training-tags .tag.active')].map(t=>t.textContent); }
 
 function buildProtocol(t){
@@ -2756,6 +2812,7 @@ function blkFmtDur(m){ const h=Math.floor(m/60),mm=m%60; return ((h?h+'h':'')+(m
 function blkFmtMon(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
 function blkCatById(id){ return blkCats.find(c=>c.id===id); }
 function blkGoalById(id){ return blkGoals.find(g=>g.id===id); }
+function blockGoalIds(b){ return Array.isArray(b.goals)?b.goals:(b.goal?[b.goal]:[]); }
 function blkUid(){ return 'b'+Math.random().toString(36).slice(2,9); }
 function blkIsToday(i){ const t=new Date(); t.setHours(0,0,0,0); return blkAddDays(blkWeekStart,i).getTime()===t.getTime(); }
 function blkNowMin(){ const n=new Date(); return n.getHours()*60+n.getMinutes(); }
@@ -2791,7 +2848,7 @@ function blkMigrateToMonday(){
 
 /* which soccer session type (if any) a block maps to */
 function blockSessionType(b){
-  if(b.goal){ const g=(read(KEYS.goals)||[]).find(x=>x.id===b.goal); if(g&&g.link&&g.link.type) return g.link.type; }
+  const gids=blockGoalIds(b); if(gids.length){ const gs=read(KEYS.goals)||[]; for(const id of gids){ const g=gs.find(x=>x.id===id); if(g&&g.link&&g.link.type) return g.link.type; } }
   if(b.category==='gym') return 'gym';
   if(b.category==='recovery') return 'recovery';
   return null;
@@ -2816,7 +2873,7 @@ function blkMakeEl(b,layout,dayView){
   let bar=''; if(b.type==='work'&&c) bar=`<span class="b-bar" style="background:${c.color}"></span>`;
   const fromCal=b.source==='gcal';
   const corner=(b.priority&&b.priority!=='none')?`<span class="pri">${b.priority==='high'?'★★★':b.priority==='med'?'★★':'★'}</span>`:(fromCal?BLK_LOCK:'');
-  const g=b.goal?blkGoalById(b.goal):null;
+  const gids=blockGoalIds(b); const gnames=gids.map(id=>{const gg=blkGoalById(id);return gg?gg.title:null;}).filter(Boolean); const g=gnames.length?{title:gnames.length>1?(gnames.length+' goals'):gnames[0]}:null;
   let catName=(b.type==='protected'?'Reset · protected':(c?c.name:''))+(fromCal?(c?' · 📅':'📅 calendar'):'');
   if(g&&!dayView) catName=(catName?catName+' ':'')+'⚑';
   const chk=(dayView&&!b.allDay)?`<div class="donechk" data-chk="1">✓</div>`:'';
@@ -2937,7 +2994,7 @@ function goalsRelatedToBlock(b){
   let bType=null; try{ bType=blockSessionType(b); }catch(_){}
   loadGoals();
   return goalsArr.filter(isActive).filter(g=>{
-    if(b.goal===g.id) return true;
+    if(blockGoalIds(b).includes(g.id)) return true;
     if(goalAllKeywords(g).some(k=>k.length>2 && btext.includes(k))) return true;
     const types=[]; if(g.link&&g.link.type) types.push(g.link.type);
     (g.checkpoints||[]).forEach(cp=>{ if(cp&&cp.link&&cp.link.src==='soccer'&&cp.link.type) types.push(cp.link.type); });
@@ -2951,11 +3008,11 @@ function blkSheetOpen(id){
   document.getElementById('bsTime').textContent=(b.allDay?'all day':(blkFmtTime(b.start)+' – '+blkFmtTime(b.end)))+' · '+BLK_DOW[b.day];
   const dn=document.getElementById('bsDone'); dn.classList.toggle('on',blkSheetDone); dn.textContent=blkSheetDone?'✓ Done':'Mark done';
   const rel=goalsRelatedToBlock(b);
-  const sel=document.getElementById('bsGoal');
-  if(!rel.length){ sel.innerHTML='<option value="">— no goals relate to this block —</option>'; }
-  else{ sel.innerHTML='<option value="">— no goal —</option>'+rel.map(g=>`<option value="${g.id}" ${b.goal===g.id?'selected':''}>${esc(g.title)}</option>`).join(''); }
-  let note='';
-  if(b.goal){ try{ loadContextArr(); const day=ctxFindDay(blkDateOf(b)); if(day&&day.boxes) note=day.boxes[b.goal]||''; }catch(_){} }
+  const host=document.getElementById('bsGoalChips'); const linked=new Set(blockGoalIds(b));
+  if(!rel.length){ host.innerHTML='<span style="font-size:11px;color:var(--muted)">No goals relate to this block.</span>'; }
+  else{ host.innerHTML=rel.map(g=>`<button type="button" class="gchip ${linked.has(g.id)?'on':''}" data-gid="${g.id}" onclick="this.classList.toggle('on')">${esc(g.title)}</button>`).join(''); }
+  let note=''; const first=blockGoalIds(b)[0];
+  if(first){ try{ loadContextArr(); const day=ctxFindDay(blkDateOf(b)); if(day&&day.boxes) note=day.boxes[first]||''; }catch(_){} }
   document.getElementById('bsNote').value=note;
   document.getElementById('blkSheet').classList.add('open');
 }
@@ -2963,15 +3020,15 @@ function blkSheetToggleDone(){ blkSheetDone=!blkSheetDone; const dn=document.get
 function blkSheetClose(){ document.getElementById('blkSheet').classList.remove('open'); blkSheetId=null; }
 function blkSheetSave(){
   const b=blkBlocks.find(x=>x.id===blkSheetId); if(!b){ blkSheetClose(); return; }
-  const goalId=document.getElementById('bsGoal').value||null;
+  const goals=blkChipSelected('bsGoalChips');
   const note=(document.getElementById('bsNote').value||'').trim();
-  b.done=blkSheetDone; b.goal=goalId;
+  b.done=blkSheetDone; b.goals=goals; delete b.goal;
   blkSaveWeek();
-  if(goalId){
+  if(goals.length){
     try{
       loadContextArr(); const dateStr=blkDateOf(b);
       let day=ctxFindDay(dateStr); if(!day){ day={date:dateStr}; contextArr.push(day); }
-      day.boxes=day.boxes||{}; if(note) day.boxes[goalId]=note; else delete day.boxes[goalId]; day.updated=Date.now();
+      day.boxes=day.boxes||{}; goals.forEach(gid=>{ if(note) day.boxes[gid]=note; }); day.updated=Date.now();
       saveContextArr();
     }catch(_){}
   }
@@ -3024,21 +3081,24 @@ function blkToggleDone(id){
 }
 function blkRemove(id){ blkBlocks=blkBlocks.filter(x=>x.id!==id); blkSaveWeek(); blkRenderAll(); }
 function blkDup(id){ const b=blkBlocks.find(x=>x.id===id); if(!b) return; const dur=b.dur!=null?b.dur:(b.end-b.start);
-  blkBlocks.push({id:blkUid(),placed:false,dur,label:b.label,notes:b.notes,type:b.type,category:b.category,goal:b.goal||null,priority:b.priority||'none',done:false}); blkSaveWeek(); blkRenderAll(); soctoast('Block duplicated.'); }
+  blkBlocks.push({id:blkUid(),placed:false,dur,label:b.label,notes:b.notes,type:b.type,category:b.category,goals:blockGoalIds(b).slice(),priority:b.priority||'none',done:false}); blkSaveWeek(); blkRenderAll(); soctoast('Block duplicated.'); }
 
 /* ---- editor modal ---- */
 function blkDurOptions(){ const h=document.getElementById('bfDurH'), m=document.getElementById('bfDurM'); h.innerHTML=''; m.innerHTML='';
   for(let i=0;i<=8;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i+' hr'; h.appendChild(o);} [0,15,30,45].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v+' min'; m.appendChild(o);}); }
 function blkTimeOptions(sel,min){ sel.innerHTML=''; for(let mm=BLK_DAY_START;mm<=BLK_DAY_END;mm+=BLK_SLOT){ const o=document.createElement('option'); o.value=mm; o.textContent=blkFmtTime(mm); if(mm===min)o.selected=true; sel.appendChild(o);} }
 function blkFillCats(sel){ const fc=document.getElementById('bfCat'); fc.innerHTML=''; blkCats.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; if(c.id===sel)o.selected=true; fc.appendChild(o);}); const add=document.createElement('option'); add.value='__new'; add.textContent='＋ New category…'; fc.appendChild(add); }
-function blkFillGoals(sel){ const fg=document.getElementById('bfGoal'); fg.innerHTML='<option value="">— None —</option>';
-  const byCat={}; blkGoals.filter(isActive).forEach(g=>{ (byCat[g.cat||'Other']=byCat[g.cat||'Other']||[]).push(g); });
-  Object.keys(byCat).forEach(cat=>{ const og=document.createElement('optgroup'); og.label=CAT_LABELS[cat]||cat; byCat[cat].forEach(g=>{ const o=document.createElement('option'); o.value=g.id; o.textContent=(goalTimelineLabel(g)?`[${goalTimelineLabel(g)}] `:'')+g.title; if(g.id===sel)o.selected=true; og.appendChild(o);}); fg.appendChild(og); }); }
+function blkFillGoals(selected){ const host=document.getElementById('bfGoalChips'); if(!host) return;
+  const sel=new Set(selected||[]); const active=blkGoals.filter(isActive);
+  if(!active.length){ host.innerHTML='<span style="font-size:11px;color:var(--muted)">No active goals to link.</span>'; return; }
+  host.innerHTML=active.map(g=>`<button type="button" class="gchip ${sel.has(g.id)?'on':''}" data-gid="${g.id}" onclick="this.classList.toggle('on')">${esc(g.title)}</button>`).join('');
+}
+function blkChipSelected(hostId){ return [...document.querySelectorAll('#'+hostId+' .gchip.on')].map(c=>c.dataset.gid); }
 function blkSyncType(){ const isP=blkDraftType==='protected'; document.getElementById('bfCatField').style.display=isP?'none':'block'; document.getElementById('bfGoalField').style.display=isP?'none':'block'; }
 function blkOpenCreate(){
   blkEditId=null; blkMode='new'; blkDraftType='work'; blkDraftPri='none';
   document.getElementById('blkMTitle').textContent='New block';
-  document.getElementById('bfLabel').value=''; document.getElementById('bfNotes').value=''; blkDurOptions(); blkFillCats(null); blkFillGoals(null);
+  document.getElementById('bfLabel').value=''; document.getElementById('bfNotes').value=''; blkDurOptions(); blkFillCats(null); blkFillGoals([]);
   document.querySelectorAll('#bfType button').forEach(b=>b.classList.toggle('on',b.dataset.t==='work'));
   document.querySelectorAll('#bfPri button').forEach(b=>b.classList.toggle('on',b.dataset.p==='none'));
   blkSyncType();
@@ -3051,7 +3111,7 @@ function blkOpenEditor(id){
   const b=blkBlocks.find(x=>x.id===id); if(!b) return;
   blkEditId=id; blkMode=b.placed?'placed':'tray'; blkDraftType=b.type; blkDraftPri=b.priority||'none';
   document.getElementById('blkMTitle').textContent=b.type==='protected'?'Protected time':'Work block';
-  document.getElementById('bfLabel').value=b.label||''; document.getElementById('bfNotes').value=b.notes||''; blkDurOptions(); blkFillCats(b.category); blkFillGoals(b.goal||null);
+  document.getElementById('bfLabel').value=b.label||''; document.getElementById('bfNotes').value=b.notes||''; blkDurOptions(); blkFillCats(b.category); blkFillGoals(blockGoalIds(b));
   document.querySelectorAll('#bfType button').forEach(x=>x.classList.toggle('on',x.dataset.t===blkDraftType));
   document.querySelectorAll('#bfPri button').forEach(x=>x.classList.toggle('on',x.dataset.p===blkDraftPri));
   blkSyncType();
@@ -3067,15 +3127,15 @@ function blkOpenEditor(id){
 function blkCloseEditor(){ document.getElementById('blkOverlay').classList.remove('open'); blkEditId=null; }
 function blkDoSave(){
   const label=document.getElementById('bfLabel').value.trim(); const notes=document.getElementById('bfNotes').value.trim();
-  const type=blkDraftType; const cat=type==='protected'?null:document.getElementById('bfCat').value; const goal=type==='protected'?null:(document.getElementById('bfGoal').value||null);
+  const type=blkDraftType; const cat=type==='protected'?null:document.getElementById('bfCat').value; const goals=type==='protected'?[]:blkChipSelected('bfGoalChips');
   if(cat==='__new'){ blkOpenCatModal(); return; }
   if(blkMode==='new'){
     const dur=(+document.getElementById('bfDurH').value)*60+(+document.getElementById('bfDurM').value);
     if(dur<BLK_SLOT){ const w=document.getElementById('bfWarn'); w.textContent='Duration must be at least 15 min.'; w.classList.add('show'); return; }
-    blkBlocks.push({id:blkUid(),placed:false,dur,label,notes,type,category:cat,goal,priority:blkDraftPri,done:false,source:'mode'}); blkSaveWeek(); blkRenderAll(); blkCloseEditor(); return;
+    blkBlocks.push({id:blkUid(),placed:false,dur,label,notes,type,category:cat,goals,priority:blkDraftPri,done:false,source:'mode'}); blkSaveWeek(); blkRenderAll(); blkCloseEditor(); return;
   }
   const b=blkBlocks.find(x=>x.id===blkEditId); if(!b) return;
-  b.label=label; b.notes=notes; b.type=type; b.category=cat; b.goal=goal; b.priority=blkDraftPri;
+  b.label=label; b.notes=notes; b.type=type; b.category=cat; b.goals=goals; delete b.goal; b.priority=blkDraftPri;
   if(blkMode==='placed'){
     let s=+document.getElementById('bfStart').value, en=+document.getElementById('bfEnd').value;
     if(en<=s){ const w=document.getElementById('bfWarn'); w.textContent='End must be after start.'; w.classList.add('show'); return; }
