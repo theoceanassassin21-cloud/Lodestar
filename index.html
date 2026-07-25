@@ -322,7 +322,22 @@
   .goal-chips{display:flex;flex-wrap:wrap;gap:6px}
   .gchip{font-size:11px;padding:6px 11px;border:1px solid var(--border2);border-radius:2px;color:var(--dim);cursor:pointer;background:none;font-family:'DM Mono',monospace;transition:all .15s}
   .gchip:hover{border-color:var(--gold);color:var(--dim)}
+  .gchip.likely{border-color:rgba(201,169,110,.55);color:var(--gold)}
   .gchip.on{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+  .gchip.on.likely{color:var(--bg)}
+  .goal-none{font-size:11px;color:var(--dim)}
+  .goal-more{margin-top:9px;border:1px solid var(--border);border-radius:3px;background:var(--surface)}
+  .goal-more summary{list-style:none;cursor:pointer;padding:8px 11px;font-size:11px;letter-spacing:.06em;color:var(--dim);user-select:none;display:flex;align-items:center;gap:6px}
+  .goal-more summary::-webkit-details-marker{display:none}
+  .goal-more summary::before{content:'▸';color:var(--muted);font-size:10px}
+  .goal-more[open] summary::before{content:'▾'}
+  .goal-more summary:hover{color:var(--text)}
+  .goal-more-list{padding:4px 6px 8px;display:flex;flex-direction:column;gap:1px;max-height:190px;overflow:auto}
+  .gopt{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:2px;cursor:pointer;font-size:12px;color:var(--dim)}
+  .gopt:hover{background:var(--surface2);color:var(--text)}
+  .gopt .gopt-check{width:15px;height:15px;border:1px solid var(--border2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;flex-shrink:0}
+  .gopt.on{color:var(--text)}
+  .gopt.on .gopt-check{background:var(--gold);border-color:var(--gold);color:var(--bg)}
   .lkc{margin-top:12px;border:1px solid var(--border);border-radius:4px;padding:10px 8px;background:var(--surface)}
   .lkc-hd{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:7px}
   .lkc-top{display:flex;align-items:center;gap:6px}
@@ -927,10 +942,10 @@
   <div class="modal-bg" id="blkOverlay">
     <div class="modal">
       <h3 id="blkMTitle">New block</h3>
-      <div class="field"><label class="form-label">Label</label><input class="form-input" id="bfLabel" placeholder="What is this time for?" autocomplete="off"></div>
+      <div class="field"><label class="form-label">Label</label><input class="form-input" id="bfLabel" placeholder="What is this time for?" autocomplete="off" oninput="blkRefreshGoalChips()"></div>
       <div class="field"><label class="form-label">Type</label><div class="seg" id="bfType"><button data-t="work" class="on">Work block</button><button data-t="protected">Protected · reset</button></div></div>
       <div class="field" id="bfCatField"><label class="form-label">Category</label><select class="form-select" id="bfCat"></select></div>
-      <div class="field" id="bfGoalField"><label class="form-label">Linked goals</label><div class="goal-chips" id="bfGoalChips"></div></div>
+      <div class="field" id="bfGoalField"><label class="form-label">Linked goals</label><div class="goal-chips" id="bfGoalChips"></div><details class="goal-more" id="bfGoalMoreWrap"><summary id="bfGoalMoreSum">Other goals</summary><div class="goal-more-list" id="bfGoalMore"></div></details></div>
       <div class="field"><label class="form-label">Priority</label><div class="seg" id="bfPri"><button data-p="none" class="on">—</button><button data-p="low">Low</button><button data-p="med">Med</button><button data-p="high">High</button></div></div>
       <div class="field" id="bfDurField"><label class="form-label">Duration</label><div class="row2">
         <select class="form-select" id="bfDurH"></select><select class="form-select" id="bfDurM"></select></div></div>
@@ -1284,9 +1299,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -2464,7 +2479,7 @@ function blkStatLine(goalId){
 }
 function goalPlanBlock(goalId){
   show('block'); blkOpenCreate();
-  const chip=document.querySelector('#bfGoalChips [data-gid="'+goalId+'"]'); if(chip) chip.classList.add('on');
+  blkRenderGoalChips(new Set([goalId]));
   soctoast('New block linked to this goal \u2014 set duration & add');
 }
 function decadeCard(g){
@@ -3215,11 +3230,30 @@ function blkDurOptions(){ const h=document.getElementById('bfDurH'), m=document.
   for(let i=0;i<=8;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i+' hr'; h.appendChild(o);} [0,15,30,45].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v+' min'; m.appendChild(o);}); }
 function blkTimeOptions(sel,min){ sel.innerHTML=''; for(let mm=BLK_DAY_START;mm<=BLK_DAY_END;mm+=BLK_SLOT){ const o=document.createElement('option'); o.value=mm; o.textContent=blkFmtTime(mm); if(mm===min)o.selected=true; sel.appendChild(o);} }
 function blkFillCats(sel){ const fc=document.getElementById('bfCat'); fc.innerHTML=''; blkCats.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; if(c.id===sel)o.selected=true; fc.appendChild(o);}); const add=document.createElement('option'); add.value='__new'; add.textContent='＋ New category…'; fc.appendChild(add); }
-function blkFillGoals(selected){ const host=document.getElementById('bfGoalChips'); if(!host) return;
-  const sel=new Set(selected||[]); const active=blkGoals.filter(isActive);
-  if(!active.length){ host.innerHTML='<span style="font-size:11px;color:var(--muted)">No active goals to link.</span>'; return; }
-  host.innerHTML=active.map(g=>`<button type="button" class="gchip ${sel.has(g.id)?'on':''}" data-gid="${g.id}" onclick="this.classList.toggle('on')">${esc(g.title)}</button>`).join('');
+function blkRelatedGoalIds(){
+  const label=(document.getElementById('bfLabel')||{}).value||'';
+  const catSel=document.getElementById('bfCat'); const cat=catSel?catSel.value:'';
+  try{ return new Set(goalsRelatedToBlock({label, category:cat, goals:[]}).map(g=>g.id)); }catch(_){ return new Set(); }
 }
+function blkRenderGoalChips(selSet){
+  const chipHost=document.getElementById('bfGoalChips'); if(!chipHost) return;
+  const moreHost=document.getElementById('bfGoalMore'), moreSum=document.getElementById('bfGoalMoreSum');
+  const active=blkGoals.filter(isActive);
+  if(!active.length){ chipHost.innerHTML='<span class="goal-none">No active goals to link.</span>'; if(moreHost) moreHost.innerHTML=''; if(moreSum) moreSum.textContent='Other goals'; return; }
+  const rel=blkRelatedGoalIds();
+  const likely=active.filter(g=>rel.has(g.id)), rest=active.filter(g=>!rel.has(g.id));
+  chipHost.innerHTML = likely.length
+    ? likely.map(g=>`<button type="button" class="gchip likely ${selSet.has(g.id)?'on':''}" data-gid="${g.id}" onclick="this.classList.toggle('on')">★ ${esc(g.title)}</button>`).join('')
+    : '<span class="goal-none">Type a label to surface likely goals — or pick from the list below.</span>';
+  if(moreHost){ moreHost.innerHTML = rest.length
+      ? rest.map(g=>`<div class="gopt ${selSet.has(g.id)?'on':''}" data-gid="${g.id}" onclick="this.classList.toggle('on');blkUpdateMoreCount()"><span class="gopt-check">✓</span>${esc(g.title)}</div>`).join('')
+      : '<span class="goal-none" style="padding:4px 8px">No other goals.</span>'; }
+  blkUpdateMoreCount();
+}
+function blkUpdateMoreCount(){ const moreSum=document.getElementById('bfGoalMoreSum'); if(!moreSum) return; const n=document.querySelectorAll('#bfGoalMore .gopt.on').length; moreSum.textContent='Other goals'+(n?` · ${n} selected`:''); }
+function blkSelectedGoalIds(){ const ids=new Set(); document.querySelectorAll('#bfGoalChips .gchip.on').forEach(c=>ids.add(c.dataset.gid)); document.querySelectorAll('#bfGoalMore .gopt.on').forEach(c=>ids.add(c.dataset.gid)); return [...ids]; }
+function blkFillGoals(selected){ blkRenderGoalChips(new Set(selected||[])); }
+function blkRefreshGoalChips(){ blkRenderGoalChips(new Set(blkSelectedGoalIds())); }
 function blkChipSelected(hostId){ return [...document.querySelectorAll('#'+hostId+' .gchip.on')].map(c=>c.dataset.gid); }
 function blkSyncType(){ const isP=blkDraftType==='protected'; document.getElementById('bfCatField').style.display=isP?'none':'block'; document.getElementById('bfGoalField').style.display=isP?'none':'block'; }
 function blkOpenCreate(){
@@ -3254,7 +3288,7 @@ function blkOpenEditor(id){
 function blkCloseEditor(){ document.getElementById('blkOverlay').classList.remove('open'); blkEditId=null; }
 function blkDoSave(){
   const label=document.getElementById('bfLabel').value.trim(); const notes=document.getElementById('bfNotes').value.trim();
-  const type=blkDraftType; const cat=type==='protected'?null:document.getElementById('bfCat').value; const goals=type==='protected'?[]:blkChipSelected('bfGoalChips');
+  const type=blkDraftType; const cat=type==='protected'?null:document.getElementById('bfCat').value; const goals=type==='protected'?[]:blkSelectedGoalIds();
   if(cat==='__new'){ blkOpenCatModal(); return; }
   if(blkMode==='new'){
     const dur=(+document.getElementById('bfDurH').value)*60+(+document.getElementById('bfDurM').value);
