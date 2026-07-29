@@ -2136,22 +2136,34 @@ function dayGoalMatches(dateStr){
   });
   return [...seen.values()];
 }
-function ctxNoteMatch(g, txt){
+function linkBlockedReason(g, link, dateStr){
+  if(!link) return null;
+  const t=Date.parse((dateStr||'')+'T00:00:00'); if(isNaN(t)) return null;
+  const sinceDay = link.since ? linkDayStart(link.since) : null;
+  if(sinceDay!=null && t<sinceDay) return 'this link only counts from '+ctxFmtDate(new Date(sinceDay).toISOString().slice(0,10));
+  if(goalTier(g)==='weekly'){ const w=currentWeek(); if(!(t>=w.start&&t<w.end)) return 'this day is outside the current week'; }
+  return null;
+}
+function ctxNoteMatch(g, txt, dateStr){
   const t=String(txt||'').toLowerCase(); const out=[];
   const chk=(lk,label)=>{ if(!lk||lk.src!=='mention'||!lk.keywords) return;
     const hit=lk.keywords.find(k=>{ const kk=String(k).toLowerCase().trim(); return kk && t.includes(kk); });
-    if(hit) out.push({kw:hit,label:label}); };
+    if(hit) out.push({kw:hit,label:label,blocked:dateStr?linkBlockedReason(g,lk,dateStr):null}); };
   chk(g.link, g.title);
   (g.checkpoints||[]).forEach(cp=>chk(cp.link, cp.text));
   return out;
 }
-function ctxNoteState(g, val){
+function ctxNoteState(g, val, dateStr){
   const kws=goalMentionKeywords(g);
   if(!kws.length) return {cls:'cgc-count', html:''};
-  const hits=ctxNoteMatch(g, val);
-  if(hits.length){
-    const names=[...new Set(hits.map(h=>h.label))].filter(Boolean);
+  const hits=ctxNoteMatch(g, val, dateStr);
+  const live=hits.filter(h=>!h.blocked);
+  if(live.length){
+    const names=[...new Set(live.map(h=>h.label))].filter(Boolean);
     return {cls:'cgc-count on', html:'\u2713 will count'+(names.length?' \u00b7 '+esc(names.join(', ')):'')};
+  }
+  if(hits.length){
+    return {cls:'cgc-count off', html:'keyword found, but '+esc(hits[0].blocked)};
   }
   const kwHtml='<b>'+kws.map(esc).join(', ')+'</b>';
   if(!String(val||'').trim()) return {cls:'cgc-count', html:'include a keyword to log this: '+kwHtml};
@@ -2162,7 +2174,8 @@ function ctxNoteCheck(gid){
   const g=(read(KEYS.goals)||[]).find(x=>x.id===gid); if(!g) return;
   let val='';
   try{ document.querySelectorAll('[data-notebox]').forEach(el=>{ if(el.getAttribute('data-notebox')===gid) val=el.value||''; }); }catch(_){}
-  const st=ctxNoteState(g, val);
+  const dEl=document.getElementById('ctxDate');
+  const st=ctxNoteState(g, val, dEl?dEl.value:'');
   host.className=st.cls; host.innerHTML=st.html;
 }
 function ctxRenderGoalBoxes(){
@@ -2177,7 +2190,7 @@ function ctxRenderGoalBoxes(){
     const links=m.links.length? '<div class="cgc-links">'+m.links.map(L=>`<span class="cgc-link ${L.met?'met':''}">${esc(L.label)} <b>${L.count}/${L.target}</b></span>`).join('')+'</div>' : '';
     const noteVal=(e.boxes&&e.boxes[m.id])||'';
     const gFull=(read(KEYS.goals)||[]).find(x=>x.id===m.id)||{id:m.id,title:m.title,checkpoints:[]};
-    const st=ctxNoteState(gFull, noteVal);
+    const st=ctxNoteState(gFull, noteVal, dateStr);
     const kw=`<div class="${st.cls}" id="cgc-count-${m.id}">${st.html}</div>`;
     const noteBox=`<textarea class="cgc-notebox" data-notebox="${m.id}" oninput="ctxNoteCheck('${m.id}')" placeholder="what you did toward this goal today\u2026">${esc(noteVal)}</textarea>`;
     const numInputs=m.links.filter(L=>L.isNumber).map(L=>`<div class="cgc-num"><label>${esc(L.unit)} today</label><input type="number" step="any" min="0" data-numbox="${L.key}" value="${nums[L.key]!=null?esc(String(nums[L.key])):''}" placeholder="0"></div>`).join('');
@@ -2419,11 +2432,14 @@ function sessionTime(e){
   }
   const n=Number(e&&e.id); return isNaN(n)?0:n;
 }
+function linkDayStart(ts){ const d=new Date(ts); d.setHours(0,0,0,0); return d.getTime(); }
 function linkCount(g, link, cpId){
   if(!link) return 0;
   const win = goalTier(g)==='weekly' ? currentWeek() : null;
   const inWin = t => !win || (t>=win.start && t<win.end);
-  const sinceOk = t => !link.since || t>=link.since;
+  // compare at DAY granularity: a link created at 2pm must still count that same day
+  const sinceDay = link.since ? linkDayStart(link.since) : null;
+  const sinceOk = t => sinceDay==null || t>=sinceDay;
   // ── soccer session type ──
   if(link.src==='soccer' || (!link.src && link.type)){
     const m=(read(KEYS.sjEntries)||[]).filter(e=>e&&!e.archived&&e.type===link.type);
@@ -2751,7 +2767,15 @@ function copyGoalsReview(){
 function deleteGoal(id){ const g=gFind(id); if(!g)return; if(!confirm('Delete "'+g.title+'"? This cannot be undone.'))return; goalsArr=goalsArr.filter(x=>x.id!==id); saveGoals(); renderGoals(); }
 
 let linkDraft=null;
-function openLink(id){ linkEditing=id; const g=gFind(id); let s=(g&&g.link)?(g.link.src||(g.link.type?'soccer':'mention')):'soccer'; if(s==='journal')s='mention'; linkDraft={src:s,match:(g&&g.link&&g.link.match)||'goal',mode:(g&&g.link&&g.link.mode)||'count',applyTo:''}; renderGoals(); }
+function openLink(id){
+  linkEditing=id; const g=gFind(id);
+  let applyTo='';
+  let cur=(g&&g.link&&(g.link.target||g.link.type))?g.link:null;
+  if(!cur&&g){ const cp=((g.checkpoints||[]).find(c=>c&&c.link)); if(cp){ applyTo=cp.id; cur=cp.link; } }
+  let s=cur?(cur.src||(cur.type?'soccer':'mention')):'soccer'; if(s==='journal')s='mention';
+  linkDraft={src:s,match:(cur&&cur.match)||'goal',mode:(cur&&cur.mode)||'count',applyTo:applyTo};
+  renderGoals();
+}
 function linkSetField(f,v){ if(!linkDraft) linkDraft={src:'soccer',match:'goal',mode:'count',applyTo:''}; linkDraft[f]=v; renderGoals(); }
 function linkSetApply(v){ if(!linkDraft) linkDraft={src:'soccer',match:'goal',mode:'count'}; linkDraft.applyTo=v; const g=gFind(linkEditing); let cur=null; if(v){ const cp=((g&&g.checkpoints)||[]).find(c=>c.id===v); cur=cp&&cp.link; } else { cur=(g&&g.link)?g.link:null; } if(cur){ let cs=cur.src||(cur.type?'soccer':'mention'); if(cs==='journal')cs='mention'; linkDraft.src=cs; linkDraft.mode=cur.mode||'count'; linkDraft.match=cur.match||'goal'; } renderGoals(); }
 function cancelLink(){ linkEditing=null; linkDraft=null; renderGoals(); }
@@ -2759,26 +2783,29 @@ function saveLink(id){
   const g=gFind(id); if(!g)return;
   const d=linkDraft||{src:'soccer'};
   const applyEl=document.getElementById('lk-apply-'+id); const applyTo=applyEl?applyEl.value:'';
+  // editing an existing link must NOT restart its counting window
+  const prevLink = applyTo ? (((g.checkpoints||[]).find(c=>c.id===applyTo)||{}).link||null) : (g.link||null);
+  const since = (prevLink&&prevLink.since) ? prevLink.since : linkDayStart(Date.now());
   let linkObj=null;
   if(d.src==='number'){
     const unit=(document.getElementById('lk-unit-'+id).value||'').trim();
     const target=parseFloat(document.getElementById('lk-target-'+id).value);
     if(!unit){ alert('Name what you\u2019re counting (e.g. revenue, pages).'); return; }
     if(!target||target<=0){ alert('Set a target greater than 0.'); return; }
-    linkObj={src:'number',unit,target,since:Date.now()};
+    linkObj={src:'number',unit,target,since};
   } else if(d.src==='habit'){
     const habitId=document.getElementById('lk-habit-'+id).value; if(!habitId){ alert('Pick a habit (add one on the dashboard first).'); return; }
     const target=parseInt(document.getElementById('lk-target-'+id).value,10); if(!target||target<1){ alert('Set how many days.'); return; }
-    linkObj={src:'habit',habitId,target,since:Date.now()};
+    linkObj={src:'habit',habitId,target,since};
   } else if(d.src==='mention'){
     const kws=(document.getElementById('lk-kw-'+id).value||'').split(',').map(k=>k.trim()).filter(Boolean);
     if(!kws.length){ alert('Enter at least one keyword to watch for.'); return; }
     const target=parseInt(document.getElementById('lk-target-'+id).value,10); if(!target||target<1){ alert('Set how many days.'); return; }
-    linkObj={src:'mention',keywords:kws,scope:'context',target,since:Date.now()};
+    linkObj={src:'mention',keywords:kws,scope:'context',target,since};
   } else {
     const type=document.getElementById('lk-type-'+id).value;
     const target=parseInt(document.getElementById('lk-target-'+id).value,10); if(!target||target<1){ alert('Set a target of at least 1 session.'); return; }
-    linkObj = applyTo ? {src:'soccer',type,target,since:Date.now()} : {type,target};
+    linkObj = applyTo ? {src:'soccer',type,target,since} : {type,target};
   }
   if(applyTo){ const cp=(g.checkpoints||[]).find(c=>c.id===applyTo); if(!cp){ alert('Milestone not found.'); return; } cp.link=linkObj; }
   else { g.link=linkObj; }
