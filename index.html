@@ -325,6 +325,10 @@
   .cgc-count b{color:var(--gold);font-weight:600}
   .cgc-count.on{color:var(--green)}
   .cgc-count.off b{color:var(--gold)}
+  .cp-link-edit,.cp-link-add{cursor:pointer;transition:color .15s,border-color .15s,opacity .15s}
+  .cp-link-edit:hover{color:var(--gold);border-color:rgba(201,169,110,.5)}
+  .cp-link-add{opacity:.5}
+  .cp-link-add:hover{opacity:1;color:var(--gold);border-color:rgba(201,169,110,.5)}
   .ctx-sleep{display:flex;flex-direction:column;justify-content:flex-start}
   .ctx-sleep input{background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:8px 12px;outline:none;width:110px;margin-top:4px}
   .ctx-sleep input:focus{border-color:var(--gold)}
@@ -1269,7 +1273,7 @@
       <h3>Momentum &amp; pressure</h3>
       <div class="sub">last 14 logged days</div>
       <div id="ctxTrend" style="margin-top:12px"></div>
-      <div class="ctx-legend"><span><span class="ln" style="background:var(--gold)"></span>Momentum</span><span><span class="ln" style="background:var(--red)"></span>Mental pressure</span></div>
+      <div class="ctx-legend"><span><span class="ln" style="background:var(--gold)"></span>Momentum</span><span><span class="ln" style="background:var(--red)"></span>Mental pressure</span><span><span class="ln" style="background:var(--blue)"></span>Energy</span></div>
     </div>
 
     <div class="panel">
@@ -1376,7 +1380,7 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "hhttps://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
 const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
 const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
@@ -2293,14 +2297,24 @@ function ctxRenderList(){
 function ctxRenderTrend(){
   loadContextArr(); const host=document.getElementById('ctxTrend'); if(!host) return;
   const days=[...contextArr].sort((a,b)=>a.date<b.date?-1:1).slice(-14);
-  if(days.length<2){ host.innerHTML='<div class="dash-soft">Log at least two days to see your momentum &amp; pressure trend.</div>'; return; }
+  if(days.length<2){ host.innerHTML='<div class="dash-soft">Log at least two days to see your momentum, pressure &amp; energy trend.</div>'; return; }
   const W=620,H=150,padL=24,padR=10,padT=12,padB=24,n=days.length;
   const x=i=> padL + (n===1?0:i*(W-padL-padR)/(n-1));
   const y=v=> padT + (10-(v||0))/9*(H-padT-padB);
-  const series=(key,col)=>{ const pts=days.map((e,i)=>`${x(i).toFixed(1)},${y(e[key]).toFixed(1)}`).join(' '); const dots=days.map((e,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(e[key]).toFixed(1)}" r="2.5" fill="${col}"/>`).join(''); return `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6"/>${dots}`; };
+  const has=v=>v!=null&&v!==''&&!isNaN(+v);
+  const series=(key,col)=>{
+    const segs=[]; let cur=[];
+    days.forEach((e,i)=>{ const v=e[key];
+      if(!has(v)){ if(cur.length){segs.push(cur);cur=[];} return; }
+      cur.push(`${x(i).toFixed(1)},${y(+v).toFixed(1)}`); });
+    if(cur.length) segs.push(cur);
+    const lines=segs.filter(sg=>sg.length>1).map(sg=>`<polyline points="${sg.join(' ')}" fill="none" stroke="${col}" stroke-width="1.6"/>`).join('');
+    const dots=days.map((e,i)=> has(e[key])?`<circle cx="${x(i).toFixed(1)}" cy="${y(+e[key]).toFixed(1)}" r="2.5" fill="${col}"/>`:'').join('');
+    return lines+dots;
+  };
   let grid=''; [2,4,6,8,10].forEach(v=>{ grid+=`<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-width="1"/><text x="2" y="${(y(v)+3).toFixed(1)}" fill="var(--muted)" font-size="8">${v}</text>`; });
   const step=Math.ceil(n/7); const labels=days.map((e,i)=> (i%step===0)?`<text x="${x(i).toFixed(1)}" y="${H-8}" fill="var(--muted)" font-size="8" text-anchor="middle">${ctxShort(e.date)}</text>`:'').join('');
-  host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${grid}${labels}${series('pressure','var(--red)')}${series('momentum','var(--gold)')}</svg>`;
+  host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${grid}${labels}${series('pressure','var(--red)')}${series('energy','var(--blue)')}${series('momentum','var(--gold)')}</svg>`;
 }
 function ctxCopyForClaude(){
   loadContextArr();
@@ -2625,7 +2639,7 @@ function goalCard(g){
         <div class="progress-header" style="margin-bottom:6px"><span class="progress-label">Milestones</span><span class="ms-seg-label">${cps.filter(c=>milestoneMet(g,c)).length}/${total}</span></div>
         <div class="milestone-bar">${cps.map((cp,i)=>`<div class="ms-seg ${milestoneMet(g,cp)?'done':''}" onclick="toggleCheckpoint('${g.id}',${i})"><span class="seg-tooltip">${milestoneMet(g,cp)?'✓ ':''}${esc(cp.text)}</span></div>`).join('')}</div>
       </div>
-      <div class="checkpoints">${cps.map((cp,i)=>`<div class="checkpoint ${milestoneMet(g,cp)?'checked':''}" onclick="toggleCheckpoint('${g.id}',${i})"><div class="checkpoint-box"><svg class="checkpoint-check" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="checkpoint-text">${esc(cp.text)}</span>${cp.manualDone?`<span class="cp-link" title="Marked done manually">✓ manual</span>`:(cp.link?`<span class="cp-link">${cp.link.src==='soccer'?'⚽':cp.link.src==='habit'?'🔁':cp.link.src==='mention'?'💬':cp.link.src==='number'?'∑':'⛓'} ${milestoneCount(g,cp)}/${cp.link.target||1}</span>`:'')}</div>`).join('')}</div>` : '';
+      <div class="checkpoints">${cps.map((cp,i)=>`<div class="checkpoint ${milestoneMet(g,cp)?'checked':''}" onclick="toggleCheckpoint('${g.id}',${i})"><div class="checkpoint-box"><svg class="checkpoint-check" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="checkpoint-text">${esc(cp.text)}</span>${cp.manualDone?`<span class="cp-link" title="Marked done manually">✓ manual</span>`:(cp.link?`<span class="cp-link cp-link-edit" title="Edit this milestone’s link" onclick="openLinkFor('${g.id}','${cp.id}',event)">${cp.link.src==='soccer'?'⚽':cp.link.src==='habit'?'🔁':cp.link.src==='mention'?'💬':cp.link.src==='number'?'∑':'⛓'} ${milestoneCount(g,cp)}/${cp.link.target||1}</span>`:`<span class="cp-link cp-link-add" title="Link this milestone to something measurable" onclick="openLinkFor('${g.id}','${cp.id}',event)">⛓ link</span>`)}</div>`).join('')}</div>` : '';
     const manualBase=g.manualBase||0;
     const stepper=`<div class="progress-stepper">
         <button class="stepper-btn" onclick="adjustProgress('${g.id}',-5)">−</button>
@@ -2767,6 +2781,15 @@ function copyGoalsReview(){
 function deleteGoal(id){ const g=gFind(id); if(!g)return; if(!confirm('Delete "'+g.title+'"? This cannot be undone.'))return; goalsArr=goalsArr.filter(x=>x.id!==id); saveGoals(); renderGoals(); }
 
 let linkDraft=null;
+function openLinkFor(gid, cpId, ev){
+  if(ev && ev.stopPropagation) ev.stopPropagation();
+  linkEditing=gid; const g=gFind(gid);
+  const cp=((g&&g.checkpoints)||[]).find(c=>c.id===cpId);
+  const cur=cp&&cp.link;
+  let s=cur?(cur.src||(cur.type?'soccer':'mention')):'mention'; if(s==='journal')s='mention';
+  linkDraft={src:s,match:(cur&&cur.match)||'goal',mode:(cur&&cur.mode)||'count',applyTo:cpId};
+  renderGoals();
+}
 function openLink(id){
   linkEditing=id; const g=gFind(id);
   let applyTo='';
