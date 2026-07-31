@@ -1382,7 +1382,7 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
 const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
 const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
