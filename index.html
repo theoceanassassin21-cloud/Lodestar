@@ -406,6 +406,7 @@
   .lkc-bar span{display:block;height:100%;background:var(--gold)}
   .lkc-num{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
   .lkc-num.met{color:var(--green)}
+  .lkc-acts{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
   .ctx-day{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
   .ctx-day:hover .cd-snip{color:var(--text)}
   .ctx-day .cd-date{font-size:11px;color:var(--text);width:118px;flex-shrink:0;font-variant-numeric:tabular-nums}
@@ -1381,7 +1382,7 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
 const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
 const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
@@ -2551,20 +2552,24 @@ function goalLinkList(g){
   return links;
 }
 function linkCarousel(g){
+  if(linkEditing===g.id) return '';
   const links=goalLinkList(g);
-  const hasMs=(g.checkpoints||[]).some(cp=>cp&&cp.link);
-  if(!links.length || !hasMs) return '';
+  if(!links.length) return '';
   let idx=linkCarIdx[g.id]||0; if(idx>=links.length) idx=0; if(idx<0) idx=links.length-1; linkCarIdx[g.id]=idx;
   const L=links[idx], multi=links.length>1;
   const pct=Math.min(100,Math.round(L.count/L.target*100));
-  const kw='';
-  const arL=multi?`<button class="lkc-arrow" onclick="linkCarNav('${g.id}',-1)">‹</button>`:'<span class="lkc-arrow ghost"></span>';
-  const arR=multi?`<button class="lkc-arrow" onclick="linkCarNav('${g.id}',1)">›</button>`:'<span class="lkc-arrow ghost"></span>';
-  return `<div class="lkc"><div class="lkc-hd">links${multi?' · swipe ‹ ›':''}</div><div class="lkc-top">${arL}<div class="lkc-body"><div class="lkc-scope">${esc(L.scope)}${multi?`<span class="lkc-count-i">${idx+1}/${links.length}</span>`:''}</div><div class="lkc-src">${linkSourceLabel(L.link)}</div>${kw}</div>${arR}</div><div class="lkc-prog"><div class="lkc-bar"><span style="width:${pct}%"></span></div><span class="lkc-num ${L.met?'met':''}">${L.count}/${L.target}</span></div></div>`;
+  const scopeWord = goalTier(g)==='weekly' ? 'this week' : 'total';
+  const arL=multi?`<button class="lkc-arrow" onclick="linkCarNav('${g.id}',-1)">\u2039</button>`:'<span class="lkc-arrow ghost"></span>';
+  const arR=multi?`<button class="lkc-arrow" onclick="linkCarNav('${g.id}',1)">\u203a</button>`:'<span class="lkc-arrow ghost"></span>';
+  const editBtn = L.cpId
+    ? `<button class="goal-btn" onclick="openLinkFor('${g.id}','${L.cpId}',event)">edit link</button>`
+    : `<button class="goal-btn" onclick="openGoalLink('${g.id}')">edit link</button>`;
+  const hasGoalLink = links.some(x=>!x.cpId);
+  const addBtn = hasGoalLink ? '' : `<button class="goal-btn" onclick="openGoalLink('${g.id}')">+ goal link</button>`;
+  return `<div class="lkc"><div class="lkc-hd">links${multi?` \u00b7 ${idx+1} of ${links.length}`:''}</div><div class="lkc-top">${arL}<div class="lkc-body"><div class="lkc-scope">${esc(L.scope)}</div><div class="lkc-src">${linkSourceLabel(L.link)} \u00b7 ${scopeWord}</div></div>${arR}</div><div class="lkc-prog"><div class="lkc-bar"><span style="width:${pct}%"></span></div><span class="lkc-num ${L.met?'met':''}">${L.count}/${L.target}</span></div><div class="lkc-acts">${editBtn}${addBtn}</div></div>`;
 }
 function linkCarNav(gid,dir){ linkCarIdx[gid]=(linkCarIdx[gid]||0)+dir; renderGoals(); }
 function linkBox(g){
-  const linked = g.link && g.link.target;
   const scope = goalTier(g)==='weekly' ? 'this week' : 'total';
   if(linkEditing===g.id){
     const d=linkDraft||{src:'soccer',match:'goal',mode:'count',applyTo:''};
@@ -2608,17 +2613,10 @@ function linkBox(g){
       </div>
     </div>`;
   }
-  if(linked){
-    const c=countSessionsFor(g);
-    return `<div class="link-box">
-      <div class="lk-head">
-        <span class="lk-title">⛓ ${linkLabel(g)} · ${scope}</span>
-        <span class="lk-count">${c} / ${g.link.target}</span>
-      </div>
-      <div class="lk-actions"><button class="goal-btn" onclick="openLink('${g.id}')">edit link</button></div>
-    </div>`;
-  }
-  return `<div class="lk-actions" style="margin-top:8px"><button class="goal-btn" onclick="openLink('${g.id}')">⛓ link progress</button></div>`;
+  // the carousel above renders every link (goal-level + milestones) with its own
+  // edit button — so nothing is drawn twice here.
+  if(goalLinkList(g).length) return '';
+  return `<div class="lk-actions" style="margin-top:8px"><button class="goal-btn" onclick="openGoalLink('${g.id}')">⛓ link progress</button></div>`;
 }
 
 function goalCard(g){
@@ -2781,6 +2779,13 @@ function copyGoalsReview(){
 function deleteGoal(id){ const g=gFind(id); if(!g)return; if(!confirm('Delete "'+g.title+'"? This cannot be undone.'))return; goalsArr=goalsArr.filter(x=>x.id!==id); saveGoals(); renderGoals(); }
 
 let linkDraft=null;
+function openGoalLink(gid){
+  linkEditing=gid; const g=gFind(gid);
+  const cur=(g&&g.link&&(g.link.target||g.link.type))?g.link:null;
+  let s=cur?(cur.src||(cur.type?'soccer':'mention')):'soccer'; if(s==='journal')s='mention';
+  linkDraft={src:s,match:(cur&&cur.match)||'goal',mode:(cur&&cur.mode)||'count',applyTo:''};
+  renderGoals();
+}
 function openLinkFor(gid, cpId, ev){
   if(ev && ev.stopPropagation) ev.stopPropagation();
   linkEditing=gid; const g=gFind(gid);
