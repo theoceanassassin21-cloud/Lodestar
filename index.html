@@ -407,6 +407,9 @@
   .lkc-num{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
   .lkc-num.met{color:var(--green)}
   .lkc-acts{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .ctx-range{width:auto;min-width:132px;font-size:11px;padding:9px 11px}
+  .soc-copybar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:-4px 0 16px}
+  .soc-copyres{font-size:11px;color:var(--gold);letter-spacing:.02em}
   .ctx-day{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
   .ctx-day:hover .cd-snip{color:var(--text)}
   .ctx-day .cd-date{font-size:11px;color:var(--text);width:118px;flex-shrink:0;font-variant-numeric:tabular-nums}
@@ -1116,6 +1119,16 @@
     <!-- ENTRIES -->
     <div class="soc-sec" id="soc-entries">
       <div class="filters" id="entry-filters"></div>
+      <div class="soc-copybar">
+        <select class="form-select ctx-range" id="socRange">
+          <option value="7">last 7 days</option>
+          <option value="30" selected>last 30 days</option>
+          <option value="90">last 90 days</option>
+          <option value="all">everything</option>
+        </select>
+        <button class="btn ghost" onclick="socCopyForClaude()">⧉ Copy sessions for analysis</button>
+        <span class="soc-copyres" id="socCopyResult"></span>
+      </div>
       <div id="active-entries-list"></div>
       <div class="arch-toggle" onclick="toggleArchive()"><span id="archive-chevron">▶</span> Analyzed <span id="archive-count">(0)</span></div>
       <div id="archived-entries-list" style="display:none"></div>
@@ -1265,7 +1278,13 @@
       </div>
       <div class="btnrow" style="justify-content:flex-start;margin-top:12px;gap:10px;flex-wrap:wrap">
         <button class="btn" onclick="saveContextDay()">Save day</button>
-        <button class="btn ghost" onclick="ctxCopyForClaude()">⧉ Copy recent context for Claude</button>
+        <select class="form-select ctx-range" id="ctxRange">
+          <option value="7">last 7 days</option>
+          <option value="30" selected>last 30 days</option>
+          <option value="90">last 90 days</option>
+          <option value="all">everything</option>
+        </select>
+        <button class="btn ghost" onclick="ctxCopyForClaude()">⧉ Copy context for Claude</button>
       </div>
       <div class="note" id="ctxResult"></div>
     </div>
@@ -1381,9 +1400,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -2319,17 +2338,21 @@ function ctxRenderTrend(){
 }
 function ctxCopyForClaude(){
   loadContextArr();
-  const days=[...contextArr].sort((a,b)=>a.date<b.date?1:-1).slice(0,7);
+  const rSel=document.getElementById('ctxRange'); const range=rSel?rSel.value:'30';
+  const cut=range==='all'?null:linkDayStart(Date.now())-((+range)-1)*86400000;
+  const days=[...contextArr].filter(e=>{ if(!e||!e.date) return false; if(cut==null) return true;
+    const t=Date.parse(e.date+'T00:00:00'); return !isNaN(t)&&t>=cut; }).sort((a,b)=>a.date<b.date?1:-1);
   const r=document.getElementById('ctxResult');
-  if(!days.length){ if(r){ r.className='note show err'; r.textContent='No days logged yet to copy.'; } return; }
-  let txt='DAILY CONTEXT — most recent '+days.length+' day'+(days.length>1?'s':'')+' (newest first). Background on where I am right now:\n\n';
+  if(!days.length){ if(r){ r.className='note show err'; r.textContent=(contextArr.length?'No days logged in that range — try a longer one.':'No days logged yet to copy.'); } return; }
+  const spanTxt = range==='all' ? 'all '+days.length+' logged day'+(days.length!==1?'s':'') : days.length+' day'+(days.length!==1?'s':'')+' logged in the last '+range+' days';
+  let txt='DAILY CONTEXT — '+spanTxt+' (newest first). Background on where I am right now:\n\n';
   days.forEach(e=>{ txt+='['+ctxFmtDate(e.date)+'] momentum '+(e.momentum==null?'—':e.momentum)+'/10 · pressure '+(e.pressure==null?'—':e.pressure)+'/10'+(e.energy!=null?' · energy '+e.energy+'/10':'')+(e.sleep!=null?' · slept '+e.sleep+'h':'')+'\n';
     if(e.context)txt+='Context: '+e.context+'\n';
     if(e.decisions)txt+='Decisions: '+e.decisions+'\n';
     if(e.friction)txt+='Friction: '+e.friction+'\n';
     if(e.top3&&e.top3.length)txt+='Next-day priorities: '+e.top3.join('; ')+'\n';
     txt+='\n'; });
-  const done=()=>{ if(r){ r.className='note show ok'; r.textContent='Copied '+days.length+' day'+(days.length>1?'s':'')+' — paste into a Claude chat for context.'; } };
+  const done=()=>{ if(r){ r.className='note show ok'; r.textContent='Copied '+days.length+' day'+(days.length!==1?'s':'')+' — paste into a Claude chat for context.'; } };
   try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,()=>{ if(r){ r.className='note show err'; r.textContent='Copy failed — select the text instead.'; } }); } else done(); }catch(_){ done(); }
 }
 
@@ -3093,6 +3116,44 @@ function syncLinkedGoals(type){
   return moved;
 }
 
+function socCopyForClaude(){
+  loadSoc();
+  const res=document.getElementById('socCopyResult');
+  const say=(msg,bad)=>{ if(res){ res.textContent=msg; res.style.color=bad?'var(--red)':'var(--gold)'; } };
+  const rSel=document.getElementById('socRange'); const range=rSel?rSel.value:'30';
+  const cut=range==='all'?null:linkDayStart(Date.now())-((+range)-1)*86400000;
+  let list=socEntries.filter(e=>e&&!e.archived);
+  if(socFilter!=='all') list=list.filter(e=>e.type===socFilter);
+  if(cut!=null) list=list.filter(e=>{ const t=sessionTime(e); return t&&t>=cut; });
+  list=list.sort((a,b)=>sessionTime(b)-sessionTime(a));
+  if(!list.length){ say('No sessions in that range'+(socFilter!=='all'?' for this filter':'')+'.',true); return; }
+  const scope = socFilter==='all'?'all types':(SESSION_LABELS[socFilter]||socFilter);
+  const span = range==='all'?'all time':'last '+range+' days';
+  let txt='SOCCER SESSIONS \u2014 '+list.length+' session'+(list.length!==1?'s':'')+' \u00b7 '+scope+' \u00b7 '+span+' (newest first).\nPlease analyse my patterns, what is improving, what is slipping, and what to change:\n\n';
+  list.forEach(e=>{
+    const bits=[SESSION_LABELS[e.type]||e.type];
+    if(e.duration) bits.push(e.duration+'min');
+    if(e.result) bits.push(e.result==='W'?'Win':e.result==='D'?'Draw':'Loss');
+    if(e.score) bits.push(e.score);
+    if(e.opponent) bits.push('vs '+e.opponent);
+    txt+='['+e.date+'] '+bits.join(' \u00b7 ')+'\n';
+    if(e.headline) txt+=e.headline+'\n';
+    const rt=Object.entries(e.ratings||{}).filter(([,v])=>v>0);
+    if(rt.length){ const avg=rt.reduce((a,[,v])=>a+v,0)/rt.length;
+      txt+='Ratings (avg '+avg.toFixed(1)+'/5): '+rt.map(([k,v])=>k+' '+v).join(', ')+'\n'; }
+    const f=e.feel||{};
+    if(f.bodyPre!=null) txt+='Feel pre\u2192post: body '+f.bodyPre+'\u2192'+f.bodyPost+', energy '+f.energyPre+'\u2192'+f.energyPost+', mental '+f.mentalPre+'\u2192'+f.mentalPost+'\n';
+    if(e.focusTags&&e.focusTags.length) txt+='Focus: '+e.focusTags.join(', ')+'\n';
+    const ck=Object.entries(e.checks||{}); const ckDone=ck.filter(([,v])=>v).length;
+    if(ck.length) txt+='Protocol: '+ckDone+'/'+ck.length+' done'+(ckDone<ck.length?' \u00b7 missed: '+ck.filter(([,v])=>!v).map(([k])=>k).join('; '):'')+'\n';
+    if(e.good) txt+='Went well: '+e.good+'\n';
+    if(e.improve) txt+='To improve: '+e.improve+'\n';
+    if(e.moment) txt+='Key moment: '+e.moment+'\n';
+    txt+='\n';
+  });
+  const done=()=>say('Copied '+list.length+' session'+(list.length!==1?'s':'')+' \u2014 paste into a Claude chat.');
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,()=>say('Copy failed \u2014 try again.',true)); } else done(); }catch(_){ done(); }
+}
 function soctoast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
 
 /* ---- entries list ---- */
