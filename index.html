@@ -325,6 +325,18 @@
   .cgc-count b{color:var(--gold);font-weight:600}
   .cgc-count.on{color:var(--green)}
   .cgc-count.off b{color:var(--gold)}
+  .cgc-mls{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+  .cgc-ml{display:flex;align-items:baseline;gap:7px;font-size:10px;color:var(--dim);line-height:1.4}
+  .cgc-ml-m{width:9px;flex-shrink:0;color:var(--muted)}
+  .cgc-ml-n{color:var(--text);flex:0 0 auto;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cgc-ml-k{color:var(--dim);min-width:0}
+  .cgc-ml-k b{color:var(--gold);font-weight:600}
+  .cgc-ml.on .cgc-ml-m{color:var(--green)}
+  .cgc-ml.on .cgc-ml-n{color:var(--green)}
+  .cgc-ml.blocked{opacity:.5}
+  .cgc-ml.blocked .cgc-ml-k b{color:var(--muted)}
+  .cgc-ml-x{color:var(--muted)}
+  @media(max-width:600px){.cgc-ml{flex-wrap:wrap;gap:3px 7px}.cgc-ml-n{max-width:none}}
   .cp-link-edit,.cp-link-add{cursor:pointer;transition:color .15s,border-color .15s,opacity .15s}
   .cp-link-edit:hover{color:var(--gold);border-color:rgba(201,169,110,.5)}
   .cp-link-add{opacity:.5}
@@ -1400,9 +1412,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -2168,6 +2180,14 @@ function linkBlockedReason(g, link, dateStr){
   if(goalTier(g)==='weekly'){ const w=currentWeek(); if(!(t>=w.start&&t<w.end)) return 'this day is outside the current week'; }
   return null;
 }
+function goalMentionTargets(g){
+  const out=[];
+  const add=(lk,label,cpId)=>{ if(!lk||lk.src!=='mention'||!lk.keywords||!lk.keywords.length) return;
+    out.push({label:label||'Whole goal', cpId:cpId||null, link:lk, keywords:lk.keywords.map(k=>String(k))}); };
+  add(g.link, g.title, null);
+  (g.checkpoints||[]).forEach(cp=>add(cp.link, cp.text, cp.id));
+  return out;
+}
 function ctxNoteMatch(g, txt, dateStr){
   const t=String(txt||'').toLowerCase(); const out=[];
   const chk=(lk,label)=>{ if(!lk||lk.src!=='mention'||!lk.keywords) return;
@@ -2178,20 +2198,38 @@ function ctxNoteMatch(g, txt, dateStr){
   return out;
 }
 function ctxNoteState(g, val, dateStr){
-  const kws=goalMentionKeywords(g);
-  if(!kws.length) return {cls:'cgc-count', html:''};
+  const targets=goalMentionTargets(g);
+  if(!targets.length) return {cls:'cgc-count', html:''};
   const hits=ctxNoteMatch(g, val, dateStr);
   const live=hits.filter(h=>!h.blocked);
-  if(live.length){
-    const names=[...new Set(live.map(h=>h.label))].filter(Boolean);
-    return {cls:'cgc-count on', html:'\u2713 will count'+(names.length?' \u00b7 '+esc(names.join(', ')):'')};
+  const typed=!!String(val||'').trim();
+  const hitLabels=new Set(live.map(h=>h.label));
+
+  // one mention link \u2014 keep it compact
+  if(targets.length===1){
+    const t=targets[0]; const kwHtml='<b>'+t.keywords.map(esc).join(', ')+'</b>';
+    if(live.length) return {cls:'cgc-count on', html:'\u2713 will count \u00b7 '+esc(t.label)};
+    if(hits.length) return {cls:'cgc-count off', html:'keyword found, but '+esc(hits[0].blocked)};
+    return {cls:'cgc-count'+(typed?' off':''), html:(typed?'not logged yet \u2014 add: ':'include a keyword to log this: ')+kwHtml};
   }
-  if(hits.length){
-    return {cls:'cgc-count off', html:'keyword found, but '+esc(hits[0].blocked)};
-  }
-  const kwHtml='<b>'+kws.map(esc).join(', ')+'</b>';
-  if(!String(val||'').trim()) return {cls:'cgc-count', html:'include a keyword to log this: '+kwHtml};
-  return {cls:'cgc-count off', html:'not logged yet \u2014 add: '+kwHtml};
+
+  // several mention links \u2014 show which keywords belong to which milestone,
+  // so a note never credits a milestone that wasn't worked on
+  const rows=targets.map(t=>{
+    const on=hitLabels.has(t.label);
+    const blocked=dateStr?linkBlockedReason(g,t.link,dateStr):null;
+    const kw='<b>'+t.keywords.map(esc).join(', ')+'</b>';
+    const mark=on?'\u2713':(blocked?'\u00b7':'\u25e6');
+    const cls='cgc-ml'+(on?' on':'')+(blocked&&!on?' blocked':'');
+    const note=blocked&&!on?'<span class="cgc-ml-x"> \u2014 '+esc(blocked)+'</span>':'';
+    return '<div class="'+cls+'"><span class="cgc-ml-m">'+mark+'</span><span class="cgc-ml-n">'+esc(t.label)+'</span><span class="cgc-ml-k">'+kw+note+'</span></div>';
+  }).join('');
+
+  let head, cls;
+  if(live.length){ cls='cgc-count on'; head='\u2713 will count \u00b7 '+esc([...hitLabels].join(', ')); }
+  else if(hits.length){ cls='cgc-count off'; head='keyword found, but '+esc(hits[0].blocked); }
+  else { cls='cgc-count'+(typed?' off':''); head=typed?'not logged yet \u2014 add the keyword for what you actually did:':'include the keyword for the milestone you worked on:'; }
+  return {cls, html:head+'<div class="cgc-mls">'+rows+'</div>'};
 }
 function ctxNoteCheck(gid){
   const host=document.getElementById('cgc-count-'+gid); if(!host) return;
