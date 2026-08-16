@@ -1059,7 +1059,7 @@
   <div class="modal-bg" id="blkImportOverlay">
     <div class="modal">
       <h3>Import calendar</h3>
-      <div class="sub" style="font-size:11px;color:var(--dim);margin-bottom:10px">Paste a JSON array of events: <code style="color:var(--gold)">[{"date":"2026-06-23","start":"19:30","end":"21:30","title":"Practice"}]</code>. Use <code style="color:var(--gold)">"allDay":true</code> for all-day. Imported events are regular blocks — you can edit, complete and link them to goals.</div>
+      <div class="sub" style="font-size:11px;color:var(--dim);margin-bottom:10px">Paste a JSON array of events: <code style="color:var(--gold)">[{"date":"2026-06-23","start":"19:30","end":"21:30","title":"Practice"}]</code>. Use <code style="color:var(--gold)">"allDay":true</code> for all-day. Imports <b style="color:var(--gold)">merge</b> — paste just the changes and everything else that week stays put. Events you've already linked to goals or marked done keep those edits. Nothing is ever deleted by an import; remove cancelled events yourself.</div>
       <div class="field"><textarea class="form-textarea" id="bImpText" rows="7" style="font-family:'DM Mono',monospace;font-size:11px" placeholder="Paste events JSON…"></textarea></div>
       <div class="warn" id="bImpWarn"></div>
       <div class="modal-foot"><button class="btn ghost" id="bImpCancel">Cancel</button><button class="btn" id="bImpDo">Import</button></div>
@@ -1412,9 +1412,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -3711,22 +3711,65 @@ function blkRenderSwatches(){ const h=document.getElementById('bcSwatches'); h.i
 function blkOpenCatModal(){ document.getElementById('bcName').value=''; blkPendingSwatch=BLK_SWATCHES[0]; blkRenderSwatches(); document.getElementById('blkCatOverlay').classList.add('open'); }
 
 /* ---- import ---- */
+function blkImpNorm(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+/* Find the already-imported block this incoming event refers to.
+   Tiered so a moved/rescheduled event updates in place instead of duplicating,
+   without ever falsely matching two different events that share a title. */
+function blkImpMatch(inc, existing, used, allIncoming){
+  const same=b=>!used.has(b.id) && blkImpNorm(b.label)===blkImpNorm(inc.label);
+  if(inc.uid){ const m=existing.find(b=>!used.has(b.id)&&b.uid&&b.uid===inc.uid); if(m) return m; }
+  let m=existing.find(b=>same(b)&&b.day===inc.day&&b.start===inc.start); if(m) return m;   // unchanged
+  m=existing.find(b=>same(b)&&b.day===inc.day); if(m) return m;                            // time moved
+  const cands=existing.filter(same);                                                       // day moved
+  const twins=allIncoming.filter(x=>blkImpNorm(x.label)===blkImpNorm(inc.label));
+  if(cands.length===1&&twins.length===1) return cands[0];
+  return null;
+}
 function blkDoImport(){
   const w=document.getElementById('bImpWarn'); w.className='warn';
   let txt=document.getElementById('bImpText').value.trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();
-  let data; try{ data=JSON.parse(txt); }catch(e){ w.textContent='Could not read that — paste a JSON array of events.'; w.classList.add('show'); return; }
-  if(!Array.isArray(data)){ w.textContent='Expected a list of events ([ … ]).'; w.classList.add('show'); return; }
-  const byWeek={}; let count=0, skipped=0;
+  let data; try{ data=JSON.parse(txt); }catch(e){ w.textContent='Could not read that \u2014 paste a JSON array of events.'; w.classList.add('show'); return; }
+  if(!Array.isArray(data)){ w.textContent='Expected a list of events ([ \u2026 ]).'; w.classList.add('show'); return; }
+  const byWeek={}; let skipped=0;
   for(const ev of data){
-    if(!ev||!ev.date){ skipped++; continue; } const dt=new Date(ev.date+'T00:00:00'); if(isNaN(dt.getTime())){ skipped++; continue; }
-    const wk=blkWeekKey(blkSundayOf(dt)); const di=(dt.getDay()+6)%7; let start=BLK_DAY_START,end=BLK_DAY_START,allDay=false;
-    if(ev.allDay){ allDay=true; } else { const hm=s=>{ const m=(s||'').match(/^(\d{1,2}):(\d{2})$/); return m?(+m[1])*60+(+m[2]):null; }; const s=hm(ev.start), e=hm(ev.end); if(s==null){ skipped++; continue; } start=s; end=e!=null?e:s+60; }
-    (byWeek[wk]=byWeek[wk]||[]).push({id:blkUid(),placed:true,day:di,start,end,allDay,type:'work',category:blkGuessCategory(ev.title||ev.label||''),goal:null,label:ev.title||ev.label||'Event',notes:'',priority:'none',done:false,source:'gcal'});
-    count++;
+    if(!ev||!ev.date){ skipped++; continue; }
+    const dt=new Date(ev.date+'T00:00:00'); if(isNaN(dt.getTime())){ skipped++; continue; }
+    const wk=blkWeekKey(blkSundayOf(dt)); const di=(dt.getDay()+6)%7;
+    let start=BLK_DAY_START,end=BLK_DAY_START,allDay=false;
+    if(ev.allDay){ allDay=true; }
+    else { const hm=s=>{ const m=(s||'').match(/^(\d{1,2}):(\d{2})$/); return m?(+m[1])*60+(+m[2]):null; };
+      const st=hm(ev.start), en=hm(ev.end); if(st==null){ skipped++; continue; } start=st; end=en!=null?en:st+60; }
+    (byWeek[wk]=byWeek[wk]||[]).push({ day:di, start, end, allDay,
+      label:ev.title||ev.label||'Event', uid:(ev.uid||ev.id||null) });
   }
-  for(const wk of Object.keys(byWeek)){ let ex= wk===blkWeekKey(blkWeekStart)? blkBlocks.slice() : ((read(wk))||[]); ex=ex.filter(b=>b.source!=='gcal').concat(byWeek[wk]); write(wk,ex); if(wk===blkWeekKey(blkWeekStart)) blkBlocks=ex; }
+  let added=0, updated=0;
+  for(const wk of Object.keys(byWeek)){
+    const isCur = wk===blkWeekKey(blkWeekStart);
+    let ex = isCur ? blkBlocks.slice() : ((read(wk))||[]);
+    const incoming=byWeek[wk];
+    const existing=ex.filter(b=>b&&b.source==='gcal');
+    const used=new Set();
+    incoming.forEach(inc=>{
+      const m=blkImpMatch(inc, existing, used, incoming);
+      if(m){
+        used.add(m.id);
+        // the calendar owns when it happens and what it's called \u2014 you own the rest
+        m.day=inc.day; m.start=inc.start; m.end=inc.end; m.allDay=inc.allDay; m.label=inc.label;
+        if(inc.uid) m.uid=inc.uid;
+        updated++;
+      } else {
+        ex.push({ id:blkUid(), placed:true, day:inc.day, start:inc.start, end:inc.end, allDay:inc.allDay,
+          type:'work', category:blkGuessCategory(inc.label), goals:[], label:inc.label, notes:'',
+          priority:'none', done:false, source:'gcal', uid:inc.uid||null });
+        added++;
+      }
+    });
+    write(wk,ex); if(isCur) blkBlocks=ex;
+  }
   document.getElementById('blkImportOverlay').classList.remove('open'); blkRenderAll(); try{renderDash();}catch(e){}
-  soctoast(`Imported ${count} event${count!==1?'s':''}${skipped?' · '+skipped+' skipped':''}.`);
+  const bits=[]; if(added) bits.push(added+' added'); if(updated) bits.push(updated+' updated');
+  if(skipped) bits.push(skipped+' skipped');
+  soctoast(bits.length?('Import merged \u00b7 '+bits.join(' \u00b7 ')):'Nothing to import.');
 }
 
 function blkRouteToLog(sessionType,label,dateObj,durMin){
