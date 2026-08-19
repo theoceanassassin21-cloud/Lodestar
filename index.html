@@ -722,6 +722,10 @@
   .ml-lock{font-size:10px;opacity:.7}
   .bs-done{appearance:none;width:100%;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:12px;border-radius:3px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--dim);transition:all .15s}
   .bs-done.on{border-color:var(--green);color:var(--green);background:#0e1510}
+  .bs-repeat{appearance:none;width:100%;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:11px;border-radius:3px;cursor:pointer;border:1px solid rgba(201,169,110,.4);background:none;color:var(--gold);transition:all .15s;margin-top:2px}
+  .bs-repeat:hover{border-color:var(--gold);background:rgba(201,169,110,.08)}
+  .day-pill.src{background:var(--surface3);border-color:var(--border2);color:var(--muted);cursor:default;opacity:.75}
+  .br-note{font-size:10px;color:var(--muted);line-height:1.6;margin-top:9px}
 
   /* ════ PHONE PASS (≤600px) — reflow & enlarge; PC unaffected ════ */
   @media(max-width:600px){
@@ -753,7 +757,7 @@
     .cell .n{font-size:26px}.cell{padding:14px 12px}
     .grid{grid-template-columns:1fr 1fr}
     /* blocks: hide the drag grid + planning tools, show read-only agenda */
-    .blk-seg,.blk-impbtn,.blk-tray,.blk-daybar,.blk-gridwrap,.blk-ledger{display:none !important}
+    .blkroot .blk-seg,.blkroot .blk-impbtn,.blkroot .blk-tray,.blkroot .blk-daybar,.blkroot .blk-gridwrap,.blkroot .blk-ledger{display:none !important}
     .blk-mobilelist{display:block}
     .blk-tools{flex-wrap:wrap;gap:8px;margin-bottom:14px}
     .blk-weeknav .rng{font-size:18px;min-width:auto}
@@ -1001,6 +1005,7 @@
       <button class="bs-done" id="bsDone" onclick="blkSheetToggleDone()">Mark done</button>
       <div class="field" style="margin-top:6px"><label class="form-label">Link to goals</label><div class="goal-chips" id="bsGoalChips"></div></div>
       <div class="field"><label class="form-label">Quick note <span style="color:var(--muted);text-transform:none;letter-spacing:0">(lands in that goal's log box)</span></label><textarea class="form-textarea" id="bsNote" style="min-height:64px"></textarea></div>
+      <button class="bs-repeat" id="bsRepeat" onclick="blkSheetRepeat()">⟳ Repeat on other days</button>
       <div class="modal-foot"><button class="btn ghost" onclick="blkSheetClose()">Cancel</button><button class="btn" onclick="blkSheetSave()">Save</button></div>
     </div>
   </div>
@@ -1020,6 +1025,19 @@
       <div class="modal-foot"><button class="btn ghost" id="bplCancel">Close</button><button class="btn" id="bplGo">Generate to tray</button></div>
     </div>
   </div>
+  <div class="modal-bg" id="blkRepeatOverlay">
+    <div class="modal">
+      <h3 id="brTitle">Repeat block</h3>
+      <div class="sub" id="brSub">—</div>
+      <div class="field"><label class="form-label">Repeat on these days</label>
+        <div class="day-picker" id="blkRepeatDays"></div>
+        <div class="br-note">Each copy keeps this time, but is its own block — drag any one to a new time without touching the others.</div>
+      </div>
+      <div class="warn" id="brWarn"></div>
+      <div class="modal-foot"><button class="btn ghost" onclick="blkCloseRepeat()">Cancel</button><button class="btn" onclick="blkDoRepeat()">Create copies</button></div>
+    </div>
+  </div>
+
   <div class="modal-bg" id="blkOverlay">
     <div class="modal">
       <h3 id="blkMTitle">New block</h3>
@@ -1038,6 +1056,7 @@
       <div class="warn" id="bfWarn"></div>
       <div class="modal-foot">
         <button class="btn ghost" id="bfDelete" style="margin-right:auto;color:var(--red);border-color:rgba(158,107,107,.4)">Delete</button>
+        <button class="btn ghost" id="bfRepeat" style="color:var(--gold);border-color:rgba(201,169,110,.4)">⟳ Repeat</button>
         <button class="btn ghost" id="bfComplete" style="color:var(--green);border-color:rgba(107,158,114,.4)">✓ Done / log</button>
         <button class="btn ghost" id="bfCancel">Cancel</button>
         <button class="btn" id="bfSave">Add to tray</button>
@@ -1412,9 +1431,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -3555,6 +3574,7 @@ function blkSheetOpen(id){
   let note=''; const first=blockGoalIds(b)[0];
   if(first){ try{ loadContextArr(); const day=ctxFindDay(blkDateOf(b)); if(day&&day.boxes) note=day.boxes[first]||''; }catch(_){} }
   document.getElementById('bsNote').value=note;
+  const rp=document.getElementById('bsRepeat'); if(rp) rp.style.display=b.placed?'block':'none';
   document.getElementById('blkSheet').classList.add('open');
 }
 function blkSheetToggleDone(){ blkSheetDone=!blkSheetDone; const dn=document.getElementById('bsDone'); dn.classList.toggle('on',blkSheetDone); dn.textContent=blkSheetDone?'✓ Done':'Mark done'; }
@@ -3664,7 +3684,9 @@ function blkOpenCreate(){
   blkSyncType();
   document.getElementById('bfDurField').style.display='block'; document.getElementById('bfPlaceFields').style.display='none';
   document.getElementById('bfDurH').value=1; document.getElementById('bfDurM').value=0;
-  document.getElementById('bfDelete').style.display='none'; document.getElementById('bfComplete').style.display='none'; document.getElementById('bfSave').textContent='Add to tray';
+  document.getElementById('bfDelete').style.display='none'; document.getElementById('bfComplete').style.display='none';
+  const _rp=document.getElementById('bfRepeat'); if(_rp) _rp.style.display='none';
+  document.getElementById('bfSave').textContent='Add to tray';
   document.getElementById('bfWarn').classList.remove('show'); document.getElementById('blkOverlay').classList.add('open'); document.getElementById('bfLabel').focus();
 }
 function blkOpenEditor(id){
@@ -3681,7 +3703,8 @@ function blkOpenEditor(id){
     blkTimeOptions(document.getElementById('bfStart'),b.start); blkTimeOptions(document.getElementById('bfEnd'),b.end);
   } else { document.getElementById('bfDurField').style.display='block'; document.getElementById('bfPlaceFields').style.display='none';
     document.getElementById('bfDurH').value=Math.floor(b.dur/60); document.getElementById('bfDurM').value=b.dur%60; }
-  document.getElementById('bfDelete').style.display='block'; document.getElementById('bfComplete').style.display=(blkMode==='placed'?'':'none'); document.getElementById('bfSave').textContent='Save';
+  document.getElementById('bfDelete').style.display='block'; document.getElementById('bfComplete').style.display=(blkMode==='placed'?'':'none');
+  document.getElementById('bfRepeat').style.display=(blkMode==='placed'?'':'none'); document.getElementById('bfSave').textContent='Save';
   document.getElementById('bfWarn').classList.remove('show'); document.getElementById('blkOverlay').classList.add('open'); document.getElementById('bfLabel').focus();
 }
 function blkCloseEditor(){ document.getElementById('blkOverlay').classList.remove('open'); blkEditId=null; }
@@ -3783,6 +3806,48 @@ function blkRouteToLog(sessionType,label,dateObj,durMin){
   soctoast('Block done — finish logging to count it');
 }
 
+/* ---- repeat a placed block onto other days ---- */
+let blkRepeatId=null;
+function blkOpenRepeat(id){
+  const b=blkBlocks.find(x=>x.id===id);
+  if(!b){ soctoast('Block not found.'); return; }
+  if(!b.placed){ soctoast('Put the block on a day first, then repeat it.'); return; }
+  blkRepeatId=id;
+  document.getElementById('brTitle').textContent='Repeat \u201c'+(b.label||'block')+'\u201d';
+  document.getElementById('brSub').textContent=(b.allDay?'all day':blkFmtTime(b.start)+' \u2013 '+blkFmtTime(b.end))+' \u00b7 currently on '+BLK_DOW[b.day];
+  document.getElementById('blkRepeatDays').innerHTML=BLK_DOW.map((d,i)=>
+    i===b.day
+      ? `<button type="button" class="day-pill src" title="the block you're repeating" disabled>${d}</button>`
+      : `<button type="button" class="day-pill" onclick="this.classList.toggle('on')">${d}</button>`
+  ).join('');
+  document.getElementById('brWarn').classList.remove('show');
+  document.getElementById('blkRepeatOverlay').classList.add('open');
+}
+function blkCloseRepeat(){ document.getElementById('blkRepeatOverlay').classList.remove('open'); blkRepeatId=null; }
+function blkSheetRepeat(){ const id=blkSheetId; blkSheetClose(); blkOpenRepeat(id); }
+function blkDoRepeat(){
+  const b=blkBlocks.find(x=>x.id===blkRepeatId); if(!b){ blkCloseRepeat(); return; }
+  const pills=[...document.querySelectorAll('#blkRepeatDays .day-pill')];
+  const days=pills.map((p,i)=>p.classList.contains('on')&&!p.classList.contains('src')?i:-1).filter(i=>i>=0);
+  if(!days.length){ const w=document.getElementById('brWarn'); w.textContent='Pick at least one other day.'; w.classList.add('show'); return; }
+  const norm=x=>String(x||'').trim().toLowerCase();
+  let made=0, dup=0, clash=0;
+  days.forEach(d=>{
+    if(d===b.day) return;
+    const exists=blkBlocks.some(x=>x&&x.placed&&x.day===d&&x.start===b.start&&x.end===b.end&&!!x.allDay===!!b.allDay&&norm(x.label)===norm(b.label));
+    if(exists){ dup++; return; }
+    if(b.type==='work'&&blkProtClash(null,d,b.start,b.end)){ clash++; return; }
+    blkBlocks.push({ id:blkUid(), placed:true, day:d, start:b.start, end:b.end, allDay:!!b.allDay,
+      type:b.type, category:b.category, goals:blockGoalIds(b).slice(), label:b.label, notes:b.notes||'',
+      priority:b.priority||'none', done:false, source:'repeat', repeatOf:b.id });
+    made++;
+  });
+  blkSaveWeek(); blkRenderAll(); blkCloseRepeat();
+  const bits=[]; if(made) bits.push(made+' added');
+  if(dup) bits.push(dup+' already there'); if(clash) bits.push(clash+' skipped \u2014 protected time');
+  soctoast(bits.length?('Repeat \u00b7 '+bits.join(' \u00b7 ')):'Nothing to add.');
+}
+
 /* ---- plan my week ---- */
 const BLK_PLAN_DUR={game:90,practice:90,training:60,benji:60,gym:60,recovery:30};
 function blkPlanCatFor(type){ const want=(type==='gym')?'gym':(type==='recovery')?'recovery':'soccer'; const c=blkCats.find(x=>x.id===want)||blkCats.find(x=>(x.name||'').toLowerCase().includes(want)); return c?c.id:null; }
@@ -3831,6 +3896,8 @@ function blkDoPlan(){
   document.getElementById('bfDelete').onclick=()=>{ blkRemove(blkEditId); blkCloseEditor(); };
   document.getElementById('bfCancel').onclick=blkCloseEditor;
   document.getElementById('bfComplete').onclick=()=>{ const id=blkEditId; blkCloseEditor(); blkSheetOpen(id); };
+  document.getElementById('bfRepeat').onclick=()=>{ const id=blkEditId; blkCloseEditor(); blkOpenRepeat(id); };
+  document.getElementById('blkRepeatOverlay').addEventListener('click',e=>{ if(e.target.id==='blkRepeatOverlay') blkCloseRepeat(); });
   document.getElementById('blkOverlay').addEventListener('click',e=>{ if(e.target.id==='blkOverlay') blkCloseEditor(); });
   document.getElementById('blkSheet').addEventListener('click',e=>{ if(e.target.id==='blkSheet') blkSheetClose(); });
   document.getElementById('bcCancel').onclick=()=>document.getElementById('blkCatOverlay').classList.remove('open');
