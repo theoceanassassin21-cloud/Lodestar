@@ -68,7 +68,7 @@
   .hero p{color:var(--dim);max-width:48ch;margin:0 auto 22px;font-size:12.5px;line-height:1.7}
 
   /* ── buttons ── */
-  .btn{appearance:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:10px 20px;border-radius:3px;cursor:pointer;transition:all .18s;border:1px solid var(--gold);background:var(--gold);color:var(--bg)}
+  .btn{appearance:none;white-space:nowrap;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:10px 20px;border-radius:3px;cursor:pointer;transition:all .18s;border:1px solid var(--gold);background:var(--gold);color:var(--bg)}
   .btn:hover{background:var(--gold2);border-color:var(--gold2)}
   .btn.ghost{background:none;color:var(--dim);border-color:var(--border2)}
   .btn.ghost:hover{color:var(--text);border-color:var(--gold);background:none}
@@ -157,10 +157,10 @@
   .goal-card.completed{opacity:.5}.goal-card.completed .goal-title{text-decoration:line-through}
   .goal-card.incomplete{opacity:.62}.goal-card.incomplete .goal-title{text-decoration:line-through;text-decoration-color:var(--red)}
   .goal-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cat-color,var(--gold));border-radius:3px 0 0 3px}
-  .goal-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px}
+  .goal-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
   .goal-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .cat-badge{font-size:9px;letter-spacing:.18em;text-transform:uppercase;padding:2px 8px;border-radius:1px;background:var(--cat-color-dim,rgba(201,169,110,.1));color:var(--cat-color,var(--gold));border:1px solid var(--cat-color-dim2,rgba(201,169,110,.2))}
-  .goal-actions{display:flex;gap:6px;flex-shrink:0}
+  .goal-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;min-width:0}
   .goal-blockstat{font-size:10px;color:var(--gold);letter-spacing:.04em;margin:7px 0 1px;opacity:.85;cursor:pointer}
   .goal-blockstat:hover{opacity:1;text-decoration:underline}
   .cp-link{font-size:10px;color:var(--gold);letter-spacing:.04em;margin-left:8px;font-variant-numeric:tabular-nums}
@@ -307,6 +307,19 @@
   .ctx-goal-card{border:1px solid var(--border);border-left:2px solid var(--gold);border-radius:3px;padding:10px 12px;margin-bottom:9px;background:var(--surface)}
   .cgc-title{font-size:13px;color:var(--text);line-height:1.35}
   .cgc-from{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.03em}
+  .ctx-goal-card{position:relative}
+  .ctx-goal-card.engine{border-left-color:var(--blue,#6b869e);background:linear-gradient(180deg,rgba(107,134,158,.05),transparent)}
+  .cgc-why{font-size:10px;color:var(--muted);margin-top:3px;font-style:italic;letter-spacing:.02em}
+  .cgc-x{position:absolute;top:6px;right:7px;background:none;border:none;color:var(--dim);font-size:15px;line-height:1;cursor:pointer;padding:2px 5px;border-radius:2px}
+  .cgc-x:hover{color:var(--red);background:rgba(158,107,107,.1)}
+  .ctx-box-head.sec{margin-top:15px}
+  .ctx-sug-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 2px}
+  .ctx-sug-lbl{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-right:2px}
+  .ctx-sug{background:none;border:1px dashed var(--border2);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:4px 9px;border-radius:2px;cursor:pointer;transition:all .15s}
+  .ctx-sug:hover{border-color:var(--gold);color:var(--gold);border-style:solid}
+  .ctx-picker{margin-top:10px}
+  .ctx-picker select{width:100%;background:var(--surface2);border:1px dashed var(--border2);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:3px;cursor:pointer}
+  .ctx-picker select:hover{border-color:var(--gold);color:var(--gold)}
   .cgc-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
   .cgc-link{font-size:10px;color:var(--dim);border:1px solid var(--border2);border-radius:2px;padding:2px 7px;font-variant-numeric:tabular-nums}
   .cgc-link.met{color:var(--green);border-color:rgba(107,158,114,.4)}
@@ -693,7 +706,8 @@
   .modal h3{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:22px;color:var(--text);margin:0;letter-spacing:.02em}
   .modal .sub{font-size:11px;color:var(--dim);line-height:1.5;margin-top:-4px}
   .modal .field{display:flex;flex-direction:column;gap:5px}
-  .modal-foot{display:flex;align-items:center;gap:9px;padding-top:13px;margin-top:4px;border-top:1px solid var(--border)}
+  .modal-foot{display:flex;align-items:center;gap:8px;row-gap:8px;flex-wrap:wrap;justify-content:flex-end;padding-top:13px;margin-top:4px;border-top:1px solid var(--border)}
+  .modal-foot .btn{padding:9px 14px;white-space:nowrap;flex:0 0 auto}
   .plan-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
   .plan-row:last-child{border-bottom:none}
   .plan-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);flex-shrink:0}
@@ -1413,7 +1427,8 @@ const KEYS = {
   sjEntries:'sj_e4',
   sjGoals: 'sj_g4',
   journal: 'lodestar:journal',
-  days: 'lodestar:days'
+  days: 'lodestar:days',
+  lexicon: 'lodestar:lexicon'
 };
 const WK_PREFIX = 'blockos:wk:';
 // keys the OS adopts (everything else in a dump is ignored on import)
@@ -1431,9 +1446,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -2155,6 +2170,266 @@ function ctxLoadDay(){
   ctxRenderGoalBoxes();
   const r=document.getElementById('ctxResult'); if(r){ r.className='note'; r.textContent=''; }
 }
+/* ===CTXENGINE_START===
+   CONTEXT ENGINE — reads the day's narrative and decides which goal boxes to
+   surface. It decides what to ASK, never what to LOG. Nothing here counts. */
+const CTX_NEG=['didnt','dont','not','no','never','skipped','skip','missed','miss','failed','fail','forgot','forget','meant','avoid','avoided','without','couldnt','wasnt','instead','less','fewer','cut','reduced','stopped','barely','hardly'];
+/* clause breaks survive tokenizing as \u00a6 so negation can't reach backwards
+   across them \u2014 "didnt go out, read a book" must not negate the reading */
+function ctxTok(s){ return String(s||'').toLowerCase().replace(/[\u2018\u2019']/g,'')
+  .replace(/[.,;:!?\n\u2014]+/g,' \u00a6 ').replace(/[^a-z0-9\u00a6]+/g,' ')
+  .trim().split(/\s+/).filter(Boolean); }
+function ctxAllow(t){ const L=t.length; return L<5?0:(L<9?1:2); }
+/* Damerau-Levenshtein, capped. Transposition costs 1 edit, so mroning->morning
+   is one step away. Your logs are full of them. */
+function ctxDL(a,b,max){
+  const m=a.length,n=b.length; if(Math.abs(m-n)>max) return max+1;
+  let p2=null,p=new Array(n+1),c=new Array(n+1);
+  for(let j=0;j<=n;j++) p[j]=j;
+  for(let i=1;i<=m;i++){
+    c[0]=i; let best=c[0];
+    for(let j=1;j<=n;j++){
+      const cost=a[i-1]===b[j-1]?0:1;
+      let v=Math.min(p[j]+1,c[j-1]+1,p[j-1]+cost);
+      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]) v=Math.min(v,p2[j-2]+1);
+      c[j]=v; if(v<best) best=v;
+    }
+    if(best>max) return max+1;
+    p2=p; p=c; c=new Array(n+1);
+  }
+  return p[n];
+}
+function ctxWordMatch(tok,term){ if(tok===term) return true; const a=ctxAllow(term); return a?ctxDL(tok,term,a)<=a:false; }
+/* word-boundary matching: 'credit' can never satisfy 'red' */
+function ctxFindTerm(tokens,term){
+  const parts=ctxTok(term); if(!parts.length) return [];
+  const out=[];
+  for(let i=0;i+parts.length<=tokens.length;i++){
+    let ok=true;
+    for(let k=0;k<parts.length;k++){ if(!ctxWordMatch(tokens[i+k],parts[k])){ ok=false; break; } }
+    if(ok) out.push(i);
+  }
+  return out;
+}
+/* negation by proximity, not by intact phrase — 'faile dto use stoicism'
+   still reads as negated because the space landed in the wrong place */
+function ctxNegAt(tokens,pos,extra){
+  const terms=CTX_NEG.concat(extra||[]);
+  for(let i=pos-1;i>=Math.max(0,pos-4);i--){
+    if(tokens[i]==='\u00a6') return null;                 // stop at the clause break
+    if(terms.some(n=>ctxWordMatch(tokens[i],n))) return tokens[i];
+  }
+  return null;
+}
+function ctxScoreLex(lex,tokens){
+  const hits=[]; let score=0, strongHit=false, blocked=false; const seen=new Set();
+  const run=(list,pts,kind)=>(list||[]).forEach(term=>{
+    const key=kind+'|'+term; if(seen.has(key)) return;
+    const pos=ctxFindTerm(tokens,term); if(!pos.length) return;
+    seen.add(key);
+    const negs=pos.map(p=>ctxNegAt(tokens,p,lex.blockers)).filter(Boolean);
+    const allNeg=negs.length===pos.length;
+    if(kind==='avoid'){
+      if(allNeg){ score+=3; strongHit=true; hits.push({term,kind:'avoided',pts:3}); }
+      else { blocked=true; hits.push({term,kind:'slipped',pts:0}); }
+      return;
+    }
+    if(allNeg){ hits.push({term,kind:kind+' (negated by "'+negs[0]+'")',pts:0}); return; }
+    score+=pts; if(kind==='strong') strongHit=true;
+    hits.push({term,kind,pts});
+  });
+  run(lex.strong,3,'strong'); run(lex.avoid,3,'avoid'); run(lex.weak,1,'weak'); run(lex.clues,1,'clue');
+  /* A box only OPENS on a strong trigger. Circumstantial evidence can stack
+     but never exceeds a suggestion — calibrated against the labelled days. */
+  if(!strongHit) score=Math.min(score,2);
+  if(blocked&&!strongHit) score=0;
+  return {score,hits,strongHit,blocked};
+}
+/* Words too generic to ever be strong evidence, however they got here.
+   A user keyword like "nights" must not open a box on "another night of drinking". */
+const CTX_COMMON=['night','nights','day','days','week','weeks','month','time','times','work','worked','good','great','plan','planned','session','sessions','thing','things','stuff','done','went','got','set','new','one','two','home','out','up','in'];
+const CTX_STOP=new Set(['the','and','for','with','your','you','yours','one','two','all','any','from','into','that','this','than','then','when','what','who','how','not','but','are','was','were','been','have','has','had','will','can','get','got','make','made','set','out','off','per','via','yearly','monthly','weekly','daily','every','each','more','most','less','least','new','first','second','third','last','before','after','during','by','to','of','in','on','at','it','is','as','be','do','done','build','built','building','start','started','starting','complete','completed','finish','finished','hit','reach','keep','stay','end','year','month','week','day','days','minimum','maximum','total','track','tracked','write','written','send','sent','sold','own','something','real','fully','consistent','locked','unbreakable','automatic','standard','deep','dive','protocol','work','works','working','shift','through','summer','university','september','october','november','december','january','sleep','sleeps','hours','hour','sessions','session','blocks','block','habit','identity','hold','lock','carry','rebuild','broken','unbroken','streak','goes','without','intact','affect','output','room','every','settings','social','longer','fundamentals','structured','learning','process','runs','while','you','establish','relationship','attend','follow','review','numbers','test','visit','research']);
+/* Hand-tuned profiles. Matched by best overlap against goal title + milestone text.
+   Only these can OPEN a box; anything auto-derived can only ever suggest. */
+const CTX_SEED=[
+ { id:'stoicism', match:['stoic','stoicism','emotional reaction','composed','composure','presence','setback','dwelling','unhurried','magnetic','reaction control','well-spoken'],
+   strong:['journal','journaled','journaling','stoicism','stoic','reflected','deep thought','wrote it out','reflection'],
+   weak:['reflect','calmed','contemplating','got over','getting over','sat with','resolved','stayed calm','kept my head','composed','let it go','processed'],
+   clues:['friction with','alex','frustrated','tilted','lost','bad news','not the man i want to be','didnt play the greatest','tough game','pressure','argument','heated'],
+   blockers:['let emotions','lost my head'] },
+ { id:'meditation', match:['meditation','meditate','mindfulness','breathwork','breathing'],
+   strong:['meditated','meditation','meditate','breathwork','box breathing'],
+   weak:['sat quiet','stillness','breathing'], clues:['morning routine','woke up'], blockers:[] },
+ { id:'reading', match:['read','reading','book','books','pages','chapter','self improvement','paragraph summary'],
+   strong:['read','reading','chapter','pages','red','finished the book','paragraph summary'],
+   weak:['book','books','kindle','audiobook'],
+   clues:['spa','stay in','chill night','wind down','before bed'], blockers:[] },
+ { id:'morning', match:['morning routine','5:30','5 30','wake','woke','early','routine intact','6am','5:45'],
+   strong:['morning routine','wake up at 5 30','up at 5 30','woke up early','out of bed at 5','5 30 wake'],
+   weak:['early start','up early','alarm first try'], clues:[],
+   blockers:['slept in','past alarm','not good wake up','snoozed'] },
+ { id:'recovery', match:['recovery','cold shower','normatec','massage gun','magnesium','mobility','sauna','ice bath','recovery protocol'],
+   strong:['sauna','ice bath','cold shower','cold plunge','normatec','massage gun','magnesium','recovery','mobility','stretched','stretching'],
+   weak:['nap','reset','spa','swim','slept in','rest day','recover','recovered','physio'],
+   clues:['exhausted','tired legs','heat','sore','hard weekend','beat up'], blockers:[] },
+ { id:'phone', match:['phone','screen time','doomscroll','dnd','do not disturb','scroll','4 hours daily','5 hours daily'],
+   strong:['dnd','do not disturb','screen time','tracked screen time'],
+   avoid:['doomscroll','doomscrolling','phone pickups','phone distraction','scrolling','on my phone'],
+   weak:[], clues:['wasting time','killed time'], blockers:[] },
+ { id:'diet', match:['diet','cooking','meals','nutrition','whole food','eating','cook'],
+   strong:['cooked','cooking','meal prep','made dinner','made breakfast','whole food','clean eating'],
+   weak:['ate well','eating good','nutrient dense','groceries'],
+   clues:[], blockers:['ate like','junk','takeout','fast food'] },
+ { id:'running', match:['running','run','sprint','conditioning','stamina','speed'],
+   strong:['ran','run','running','sprints','sprinted','conditioning','intervals','tempo run'],
+   weak:['cardio','laps','track work'], clues:['legs','pace'], blockers:[] },
+ { id:'gym', match:['gym','strength','lift','physical shape','benchmarks','power','explosive'],
+   strong:['gym','lifted','lifting','squat','deadlift','bench','strength session'],
+   weak:['workout','trained','weights'], clues:['sore','pump'], blockers:[] },
+ { id:'soccer', match:['soccer','varsity','roster','gssc','touches','technical focus','training','practice','football'],
+   strong:['solo session','touches','ball mastery','soccer practice','training session','technical focus','coaching'],
+   weak:['soccer','practice','game','played','trained','drills'],
+   clues:['coach','teammates','pitch','field'], blockers:[] },
+ { id:'recruiting', match:['highlight reel','coach','trial','id camp','tryout','walk-on','follow-up','follow up','recruit'],
+   strong:['highlight reel','emailed the coach','follow up email','tryout','id camp','trial','coach replied'],
+   weak:['reached out','sent film','clips'], clues:['mcmaster','university'], blockers:[] },
+ { id:'northmark', match:['northmark','website','client','clients','retainer','revenue','web design','seo','outreach'],
+   strong:['northmark','client call','closed a client','retainer','invoice','proposal','outreach','cold call','seo work'],
+   weak:['website','web design','landing page','mockup'],
+   clues:['business','ali'], blockers:[] },
+ { id:'claudecode', match:['claude code','n8n','workflow','ai agent','automate','automation','deploy'],
+   strong:['claude code','n8n','workflow','automated','automation','deployed','ai agent','built an agent'],
+   weak:['coding','script','api'], clues:['laptop','built'], blockers:[] },
+ { id:'investing', match:['investing','tfsa','fhsa','contribution','deposit','20k','portfolio','accounts'],
+   strong:['tfsa','fhsa','deposited','contribution','transferred funds','invested','moved funds'],
+   weak:['deposit','savings','portfolio'], clues:['paid','paycheque','payday'], blockers:[] },
+ { id:'realestate', match:['property','real estate','listing','viewing','cap rate','visit one property'],
+   strong:['property','real estate','viewing','listing','open house','cap rate','test numbers'],
+   weak:['realtor','mortgage'], clues:[], blockers:[] },
+ { id:'money', match:['20k months','5k','monthly revenue','financial freedom','income','taxes'],
+   strong:['revenue','invoiced','taxes','income','profit'],
+   weak:['paid','earnings'], clues:[], blockers:[] }
+];
+/* pick the profile with the best overlap, not just the first that matches */
+function ctxSeedFor(text){
+  const t=String(text||'').toLowerCase(); let best=null, bestN=0;
+  CTX_SEED.forEach(p=>{ const n=p.match.filter(m=>t.includes(m)).length; if(n>bestN){ bestN=n; best=p; } });
+  return best;
+}
+/* Any goal, including one added five minutes ago, gets coverage from its own
+   wording. Adjacent content-word pairs are distinctive enough to be strong;
+   single words can only ever suggest. */
+function ctxAutoTerms(text){
+  const toks=ctxTok(text).filter(t=>t!=='\u00a6');
+  const keep=toks.map(t=>(!CTX_STOP.has(t)&&t.length>=3&&!/^[0-9]+$/.test(t))?t:null);
+  const strong=[],weak=[];
+  for(let i=0;i<keep.length-1;i++){ if(keep[i]&&keep[i+1]) strong.push(keep[i]+' '+keep[i+1]); }
+  keep.forEach(t=>{ if(t) weak.push(t); });
+  return { strong:[...new Set(strong)].slice(0,8), weak:[...new Set(weak)].slice(0,10) };
+}
+/* ===CTXENGINE_END=== */
+
+/* ---- lexicon: seed profile + your existing link keywords + anything learned ---- */
+function ctxLoadLex(){ try{ return read(KEYS.lexicon)||{entries:{},stats:{},suggested:[]}; }catch(_){ return {entries:{},stats:{},suggested:[]}; } }
+function ctxSaveLex(L){ try{ write(KEYS.lexicon,L); }catch(_){ } }
+function ctxTargetKey(gid,cpId){ return cpId?(gid+'::'+cpId):gid; }
+function ctxLexFor(g,cp){
+  const text=(cp?cp.text:g.title)||'';
+  const seed=ctxSeedFor(text)||ctxSeedFor(g.title)||{};
+  const auto=ctxAutoTerms(text+' '+((cp&&g.title)?g.title:''));
+  const link=cp?cp.link:g.link;
+  const rawKw=(link&&link.src==='mention'&&link.keywords)?link.keywords.map(k=>String(k).toLowerCase().trim()).filter(Boolean):[];
+  /* your own keywords are strong \u2014 unless the word is too generic to carry that weight */
+  const kwStrong=rawKw.filter(k=>!CTX_COMMON.includes(k));
+  const kwWeak  =rawKw.filter(k=> CTX_COMMON.includes(k));
+  const user=(ctxLoadLex().entries||{})[ctxTargetKey(g.id,cp?cp.id:null)]||{};
+  const uniq=a=>[...new Set(a.filter(Boolean).map(x=>String(x).toLowerCase().trim()).filter(x=>x.length>1))];
+  let strong=uniq([].concat(seed.strong||[],kwStrong,auto.strong,user.strong||[]));
+  let avoid =uniq([].concat(seed.avoid||[],user.avoid||[]));
+  let weak  =uniq([].concat(seed.weak||[],kwWeak,auto.weak,user.weak||[]));
+  let clues =uniq([].concat(seed.clues||[],user.clues||[]));
+  /* a term lives in exactly one tier, highest wins \u2014 otherwise it scores twice */
+  const taken=new Set(strong); avoid=avoid.filter(t=>!taken.has(t)); avoid.forEach(t=>taken.add(t));
+  weak=weak.filter(t=>!taken.has(t)); weak.forEach(t=>taken.add(t));
+  clues=clues.filter(t=>!taken.has(t));
+  return { strong, avoid, weak, clues, blockers:uniq([].concat(seed.blockers||[],user.blockers||[])), seedId:seed.id||null, auto:!seed.id };
+}
+/* goals lean unblockable by category — this only breaks ties in the ordering,
+   it never promotes a suggestion into an open box and never surfaces from zero */
+function ctxBlockPrior(g){
+  const c=String(g.cat||'');
+  if(/1% Mode|Personal Development|Lifestyle|Health/i.test(c)) return 2;
+  if(/Athletic|Business|Academic|Co-op|Purchases/i.test(c)) return 0;
+  return 1;
+}
+function ctxDayText(e){ return [e&&e.context, e&&e.decisions, e&&e.friction].filter(Boolean).join(' . '); }
+/* yesterday's "tomorrow's top 3" primes today — an intention, pointed at the
+   right day instead of being read as evidence on the day it was written */
+function ctxPrimeTokens(dateStr){
+  try{
+    const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()-1);
+    const prev=ctxFindDay(d.toISOString().slice(0,10));
+    return ctxTok(((prev&&prev.top3)||[]).join(' '));
+  }catch(_){ return []; }
+}
+/* candidate pool: every linked goal/milestone MINUS anything that already has a
+   block that day — those surface through the block path, so nothing gets two boxes */
+function ctxCandidates(dateStr){
+  try{ loadGoals(); }catch(_){ return []; }
+  const e=ctxFindDay(dateStr)||{};
+  const tokens=ctxTok(ctxDayText(e));
+  if(!tokens.length) return [];
+  const prime=ctxPrimeTokens(dateStr);
+  const dismissed=((ctxLoadLex().dismissed||{})[dateStr])||[];
+  const out=[];
+  (goalsArr||[]).forEach(g=>{
+    if(!isActive(g)) return;
+    if(goalHadBlockOn(g.id,dateStr)) return;
+    /* every active goal is a candidate \u2014 a link decides whether a note COUNTS,
+       not whether the engine is allowed to ask about it */
+    const targets=[{cp:null,label:g.title}];
+    (g.checkpoints||[]).forEach(cp=>{ if(!cp.done) targets.push({cp,label:cp.text}); });
+    /* ONE box per goal. All five stoicism milestones score identically off the
+       same profile, so surfacing each would be five boxes for one thing.
+       Keep the best-scoring target and name which milestone triggered it. */
+    let best=null, tiedVia=false;
+    targets.forEach(t=>{
+      const key=ctxTargetKey(g.id,t.cp?t.cp.id:null);
+      const lex=ctxLexFor(g,t.cp);
+      if(!(lex.strong.length||lex.weak.length||lex.clues.length||lex.avoid.length)) return;
+      const r=ctxScoreLex(lex,tokens);
+      if(!r.score) return;
+      let score=r.score;
+      if(prime.length){
+        const primed=lex.strong.concat(lex.weak).some(term=>ctxFindTerm(prime,term).length);
+        if(primed) score+=1;
+      }
+      if(!r.strongHit) score=Math.min(score,2);
+      const cand={ key, gid:g.id, cpId:t.cp?t.cp.id:null, goalTitle:g.title, label:t.label,
+        via:t.cp?t.cp.text:null, score, tier:score>=3?'open':'suggest', hits:r.hits,
+        prior:ctxBlockPrior(g), seedId:lex.seedId, auto:lex.auto,
+        blocked:linkBlockedReason(g, t.cp?t.cp.link:g.link, dateStr) };
+      /* ties go to the goal itself \u2014 a plainer label than an arbitrary milestone */
+      if(!best || cand.score>best.score || (cand.score===best.score && !cand.cpId && best.cpId)){
+        if(best && cand.score===best.score && cand.cpId && best.cpId) tiedVia=true;
+        best=cand;
+      } else if(best && cand.score===best.score && cand.cpId && best.cpId) tiedVia=true;
+    });
+    /* siblings sharing a profile score identically \u2014 naming one of them would be
+       a guess dressed up as a finding, so name none */
+    if(best && tiedVia) best.via=null;
+    if(best && !dismissed.includes(ctxTargetKey(g.id,null))) out.push(best);
+  });
+  out.sort((a,b)=> (b.score-a.score) || (b.prior-a.prior) || a.label.localeCompare(b.label));
+  return out;
+}
+function ctxDismiss(dateStr,key){
+  const L=ctxLoadLex(); L.dismissed=L.dismissed||{};
+  L.dismissed[dateStr]=[...new Set((L.dismissed[dateStr]||[]).concat(key))];
+  ctxSaveLex(L);
+}
+function ctxUndismissAll(dateStr){ const L=ctxLoadLex(); if(L.dismissed) delete L.dismissed[dateStr]; ctxSaveLex(L); }
+
 function blocksForDate(dateStr){
   const d=new Date(dateStr+'T00:00:00'); if(isNaN(d.getTime())) return [];
   const key=blkWeekKey(blkSundayOf(d)); const dayIdx=(d.getDay()+6)%7;
@@ -2259,24 +2534,82 @@ function ctxNoteCheck(gid){
   const st=ctxNoteState(g, val, dEl?dEl.value:'');
   host.className=st.cls; host.innerHTML=st.html;
 }
+let ctxExtra=new Set(), ctxExtraDate=null;
+function ctxExtrasFor(dateStr){ if(ctxExtraDate!==dateStr){ ctxExtraDate=dateStr; ctxExtra=new Set(); } return ctxExtra; }
+function ctxExpandGoal(gid){ ctxExtra.add(gid); ctxRenderGoalBoxes(); }
+function ctxAddGoalBox(sel){ const v=sel&&sel.value; if(v) ctxExtra.add(v); if(sel) sel.value=''; ctxRenderGoalBoxes(); }
+function ctxDismissGoal(gid){
+  const d=(document.getElementById('ctxDate')||{}).value||ctxToday();
+  ctxDismiss(d,gid); ctxExtra.delete(gid); ctxRenderGoalBoxes();
+}
+/* one card shape for every box, whether a block put it there or the engine did */
+function ctxBoxCard(o){
+  const st=ctxNoteState(o.gFull, o.noteVal, o.dateStr);
+  const why=o.why?`<div class="cgc-why">${esc(o.why)}</div>`:'';
+  const x=o.dismissable?`<button class="cgc-x" onclick="ctxDismissGoal('${o.id}')" title="not relevant today">\u00d7</button>`:'';
+  return `<div class="ctx-goal-card${o.engine?' engine':''}">${x}
+    <div class="cgc-title">${esc(o.title)}</div>${o.sub||''}${why}${o.links||''}
+    <textarea class="cgc-notebox" id="cgc-note-${o.id}" data-notebox="${o.id}"${o.engine?` data-esurf="${o.id}"`:''}
+      oninput="ctxNoteCheck('${o.id}')" placeholder="what you did toward this goal today\u2026">${esc(o.noteVal)}</textarea>
+    <div class="${st.cls}" id="cgc-count-${o.id}">${st.html}</div>${o.nums||''}</div>`;
+}
 function ctxRenderGoalBoxes(){
   const host=document.getElementById('ctxGoalBoxes'); if(!host) return;
   try{ loadContextArr(); }catch(_){}
   const dateStr=(document.getElementById('ctxDate')||{}).value||ctxToday();
+  const extra=ctxExtrasFor(dateStr);
   const matches=dayGoalMatches(dateStr);
   const e=ctxFindDay(dateStr)||{}; const nums=e.nums||{};
-  if(!matches.length){ host.innerHTML='<div class="ctx-box-empty">No goals today \u2014 link a goal to one of today\u2019s blocks and it shows up here.</div>'; return; }
-  host.innerHTML='<div class="ctx-box-head">Today\u2019s focus <span>\u2014 note what you did toward each; include the keyword to log it</span></div>'+matches.map(m=>{
-    const from=`<div class="cgc-from">from ${m.blocks.map(esc).join(' \u00b7 ')}</div>`;
-    const links=m.links.length? '<div class="cgc-links">'+m.links.map(L=>`<span class="cgc-link ${L.met?'met':''}">${esc(L.label)} <b>${L.count}/${L.target}</b></span>`).join('')+'</div>' : '';
-    const noteVal=(e.boxes&&e.boxes[m.id])||'';
-    const gFull=(read(KEYS.goals)||[]).find(x=>x.id===m.id)||{id:m.id,title:m.title,checkpoints:[]};
-    const st=ctxNoteState(gFull, noteVal, dateStr);
-    const kw=`<div class="${st.cls}" id="cgc-count-${m.id}">${st.html}</div>`;
-    const noteBox=`<textarea class="cgc-notebox" data-notebox="${m.id}" oninput="ctxNoteCheck('${m.id}')" placeholder="what you did toward this goal today\u2026">${esc(noteVal)}</textarea>`;
-    const numInputs=m.links.filter(L=>L.isNumber).map(L=>`<div class="cgc-num"><label>${esc(L.unit)} today</label><input type="number" step="any" min="0" data-numbox="${L.key}" value="${nums[L.key]!=null?esc(String(nums[L.key])):''}" placeholder="0"></div>`).join('');
-    return `<div class="ctx-goal-card"><div class="cgc-title">${esc(m.title)}</div>${from}${links}${noteBox}${kw}${numInputs}</div>`;
-  }).join('');
+  const goals=read(KEYS.goals)||[];
+  const gOf=id=>goals.find(x=>x.id===id)||{id,title:'',checkpoints:[]};
+  const noteOf=id=>(e.boxes&&e.boxes[id])||'';
+
+  let html='';
+  if(matches.length){
+    html+='<div class="ctx-box-head">Today\u2019s focus <span>\u2014 note what you did toward each; include the keyword to log it</span></div>';
+    html+=matches.map(m=>ctxBoxCard({
+      id:m.id, title:m.title, gFull:gOf(m.id), noteVal:noteOf(m.id), dateStr,
+      sub:`<div class="cgc-from">from ${m.blocks.map(esc).join(' \u00b7 ')}</div>`,
+      links:m.links.length?'<div class="cgc-links">'+m.links.map(L=>`<span class="cgc-link ${L.met?'met':''}">${esc(L.label)} <b>${L.count}/${L.target}</b></span>`).join('')+'</div>':'',
+      nums:m.links.filter(L=>L.isNumber).map(L=>`<div class="cgc-num"><label>${esc(L.unit)} today</label><input type="number" step="any" min="0" data-numbox="${L.key}" value="${nums[L.key]!=null?esc(String(nums[L.key])):''}" placeholder="0"></div>`).join('')
+    })).join('');
+  }
+
+  /* the engine: goals with no block today that today's writing points at */
+  let cands=[]; try{ cands=ctxCandidates(dateStr); }catch(_){ cands=[]; }
+  const shown=new Set(matches.map(m=>m.id));
+  cands=cands.filter(c=>!shown.has(c.gid));
+  const opened=cands.filter(c=>c.tier==='open'||extra.has(c.gid));
+  const sugg  =cands.filter(c=>c.tier==='suggest'&&!extra.has(c.gid));
+  const manual=[...extra].filter(id=>!shown.has(id)&&!cands.some(c=>c.gid===id));
+
+  if(opened.length||manual.length){
+    html+='<div class="ctx-box-head sec">From today\u2019s context <span>\u2014 no block, but what you wrote points here</span></div>';
+    html+=opened.map(c=>{
+      const terms=c.hits.filter(h=>h.pts>0).map(h=>h.term);
+      return ctxBoxCard({ id:c.gid, title:c.goalTitle, gFull:gOf(c.gid), noteVal:noteOf(c.gid), dateStr,
+        engine:true, dismissable:true,
+        sub:c.via?`<div class="cgc-from">milestone: ${esc(c.via)}</div>`:'',
+        why:terms.length?'picked up: '+terms.slice(0,4).join(', '):'' });
+    }).join('');
+    html+=manual.map(id=>ctxBoxCard({ id, title:(gOf(id).title||id), gFull:gOf(id), noteVal:noteOf(id),
+      dateStr, engine:true, dismissable:true, why:'added by you' })).join('');
+  }
+  if(sugg.length){
+    html+='<div class="ctx-sug-row"><span class="ctx-sug-lbl">might be relevant</span>'+
+      sugg.map(c=>`<button class="ctx-sug" onclick="ctxExpandGoal('${c.gid}')" title="${esc((c.hits.filter(h=>h.pts>0).map(h=>h.term)[0])||'')}">+ ${esc(c.goalTitle)}</button>`).join('')+'</div>';
+  }
+  if(!matches.length&&!opened.length&&!manual.length&&!sugg.length){
+    html+='<div class="ctx-box-empty">Nothing surfaced for this day \u2014 write your context above, or add a goal box by hand below.</div>';
+  }
+  /* the fallback: any goal, any day, whatever the engine thought */
+  const pickable=goals.filter(g=>isActive(g)&&!shown.has(g.id)&&!extra.has(g.id)&&!opened.some(c=>c.gid===g.id));
+  if(pickable.length){
+    html+='<div class="ctx-picker"><select onchange="ctxAddGoalBox(this)">'+
+      '<option value="">+ add a goal box by hand\u2026</option>'+
+      pickable.map(g=>`<option value="${g.id}">${esc(g.title)}</option>`).join('')+'</select></div>';
+  }
+  host.innerHTML=html;
 }
 function ctxRenderAdherence(date){
   const host=document.getElementById('ctxAdherence'); if(!host) return;
@@ -2300,6 +2633,11 @@ function saveContextDay(){
     friction:_v('ctxFriction').trim(),
     top3:[_v('ctxTop1'),_v('ctxTop2'),_v('ctxTop3')].map(x=>x.trim()).filter(Boolean),
     boxes:(function(){ const prev=(ctxFindDay(date)||{}).boxes||{}; const o=Object.assign({},prev); try{ document.querySelectorAll('[data-notebox]').forEach(el=>{ const k=el.getAttribute('data-notebox'); const v=(el.value||'').trim(); if(v) o[k]=v; else delete o[k]; }); }catch(_){}; return o; })(),
+    esurf:(function(){ const prev=((ctxFindDay(date)||{}).esurf)||[]; const o=new Set(prev);
+      try{ document.querySelectorAll('[data-esurf]').forEach(el=>{ const k=el.getAttribute('data-esurf');
+        const v=((document.getElementById('cgc-note-'+k)||{}).value||'').trim();
+        if(v) o.add(k); else o.delete(k); }); }catch(_){}
+      return [...o]; })(),
     nums:(function(){ const o={}; try{ document.querySelectorAll('[data-numbox]').forEach(el=>{ const v=parseFloat(el.value); if(!isNaN(v)) o[el.getAttribute('data-numbox')]=v; }); }catch(_){}; return o; })(),
     updated:Date.now() };
   const i=contextArr.findIndex(e=>e.date===date);
@@ -2546,14 +2884,15 @@ function linkCount(g, link, cpId){
     let n=0; Object.keys(h.ticks).forEach(dk=>{ if(h.ticks[dk]===1){ const t=Date.parse(dk+'T00:00:00'); if(!isNaN(t)&&sinceOk(t)&&inWin(t)) n++; } });
     return n;
   }
-  // ── mention: keyword in the goal's own daily-log note, on days it had a block ──
+  // ── mention: keyword in the goal's own daily-log note, on days it had a block
+  //    OR days the context engine surfaced it (unschedulable goals never get a block) ──
   if(link.src==='mention'){
     const kws=(link.keywords||[]).map(k=>String(k).toLowerCase().trim()).filter(Boolean); if(!kws.length) return 0;
     const hit=txt=>{ const t=String(txt||'').toLowerCase(); return kws.some(k=>t.includes(k)); };
     const days=new Set();
     (read(KEYS.days)||[]).forEach(e=>{ if(!e) return;
       const t=Date.parse((e.date||'')+'T00:00:00'); if(isNaN(t)||!inWin(t)||!sinceOk(t)) return;
-      if(!goalHadBlockOn(g.id, e.date)) return;
+      if(!goalHadBlockOn(g.id, e.date) && !((e.esurf||[]).indexOf(g.id)>=0)) return;
       const note=(e.boxes&&e.boxes[g.id])||'';
       if(hit(note)) days.add(e.date);
     });
