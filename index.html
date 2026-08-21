@@ -312,6 +312,11 @@
   .cgc-why{font-size:10px;color:var(--muted);margin-top:3px;font-style:italic;letter-spacing:.02em}
   .cgc-x{position:absolute;top:6px;right:7px;background:none;border:none;color:var(--dim);font-size:15px;line-height:1;cursor:pointer;padding:2px 5px;border-radius:2px}
   .cgc-x:hover{color:var(--red);background:rgba(158,107,107,.1)}
+  .ctx-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .ctx-cols>.ctx-col{min-width:0}
+  .ctx-col.engine{border-left:1px solid var(--border);padding-left:16px}
+  @media(max-width:900px){ .ctx-cols{grid-template-columns:1fr;gap:6px}
+    .ctx-col.engine{border-left:none;padding-left:0;border-top:1px solid var(--border);padding-top:12px;margin-top:6px} }
   .ctx-box-head.sec{margin-top:15px}
   .ctx-sug-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 2px}
   .ctx-sug-lbl{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-right:2px}
@@ -320,6 +325,10 @@
   .ctx-picker{margin-top:10px}
   .ctx-picker select{width:100%;background:var(--surface2);border:1px dashed var(--border2);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:3px;cursor:pointer}
   .ctx-picker select:hover{border-color:var(--gold);color:var(--gold)}
+  select optgroup{background:var(--surface2);color:var(--gold);font-family:'DM Mono',monospace;
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-style:normal;font-weight:400;padding:4px 0}
+  select option{background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;
+    font-size:12px;font-weight:400;padding:5px 8px}
   .cgc-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
   .cgc-link{font-size:10px;color:var(--dim);border:1px solid var(--border2);border-radius:2px;padding:2px 7px;font-variant-numeric:tabular-nums}
   .cgc-link.met{color:var(--green);border-color:rgba(107,158,114,.4)}
@@ -904,8 +913,12 @@
           <div><div class="form-label" style="margin-bottom:6px">Habit name</div><input class="habit-input" id="hName" placeholder="e.g. Meditate, Read, Cold shower…"></div>
           <div><div class="form-label" style="margin-bottom:6px">Category</div>
             <select class="habit-cat-select" id="hCat">
-              <option>Personal Development / 1% Mode</option><option>Lifestyle &amp; Health</option>
-              <option>Athletic / Soccer</option><option>Business &amp; Finance</option><option>Academics &amp; Co-op</option>
+              <optgroup label="Performance">
+                <option>Athletic / Soccer</option><option>Business &amp; Finance</option><option>Academics &amp; Co-op</option>
+              </optgroup>
+              <optgroup label="Self">
+                <option>Personal Development / 1% Mode</option><option>Lifestyle &amp; Health</option>
+              </optgroup>
             </select>
           </div>
           <div class="span2"><div class="day-picker-label">Schedule — click days to toggle</div>
@@ -939,9 +952,15 @@
         <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="fTitle" placeholder="What are you locking in?"></div>
         <div class="form-group"><label class="form-label">Category</label>
           <select class="form-select" id="fCat">
-            <option>Athletic / Soccer</option><option>Business &amp; Finance</option>
-            <option>Academics &amp; Co-op</option><option>Personal Development / 1% Mode</option>
-            <option>Lifestyle &amp; Health</option><option>Future Dream Purchases</option>
+            <optgroup label="Performance">
+              <option>Athletic / Soccer</option><option>Business &amp; Finance</option><option>Academics &amp; Co-op</option>
+            </optgroup>
+            <optgroup label="Self">
+              <option>Personal Development / 1% Mode</option><option>Lifestyle &amp; Health</option>
+            </optgroup>
+            <optgroup label="Aspirations">
+              <option>Future Dream Purchases</option>
+            </optgroup>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Timeline</label>
@@ -1185,7 +1204,10 @@
       <div style="display:flex;align-items:center;gap:10px;margin:18px 0 4px">
         <span class="eyebrow" style="margin:0">Avg rating trend · last 7</span>
         <select id="trend-filter" class="filt" onchange="renderStats()" style="text-transform:none">
-          <option value="all">All</option><option value="game">Game</option><option value="practice">Practice</option><option value="training">Training</option><option value="benji">Benji</option><option value="gym">Gym</option><option value="recovery">Recovery</option>
+          <option value="all">All sessions</option>
+          <optgroup label="With the team"><option value="game">Game</option><option value="practice">Team practice</option></optgroup>
+          <optgroup label="On your own"><option value="training">Solo training</option><option value="benji">Benji</option></optgroup>
+          <optgroup label="Body"><option value="gym">Gym</option><option value="recovery">Recovery</option></optgroup>
         </select>
       </div>
       <div class="trend-chart" id="trend-chart"></div>
@@ -1446,9 +1468,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -1630,6 +1652,35 @@ function uploadBackup(input){
    DASHBOARD
    ============================================================ */
 const SESSION_LABELS={game:'Game',practice:'Team practice',training:'Solo training',benji:'Benji',gym:'Gym',recovery:'Recovery'};
+/* ---- dropdown builders: every long <select> gets headed, ordered groups ---- */
+const SESSION_GROUPS=[
+  {label:'With the team', types:['game','practice']},
+  {label:'On your own',   types:['training','benji']},
+  {label:'Body',          types:['gym','recovery']}
+];
+const CAT_ORDER=['Athletic / Soccer','Business & Finance','Academics & Co-op',
+  'Personal Development / 1% Mode','Lifestyle & Health','Future Dream Purchases'];
+function optGrp(label,inner){ return inner?`<optgroup label="${esc(label)}">${inner}</optgroup>`:''; }
+function optOne(v,label,sel){ return `<option value="${esc(String(v))}"${sel?' selected':''}>${esc(label)}</option>`; }
+/* goals grouped by category, in a fixed order, alphabetical inside each */
+function goalOptsGrouped(goals,selId){
+  const by={};
+  (goals||[]).forEach(g=>{ const c=g.cat||'Other'; (by[c]=by[c]||[]).push(g); });
+  const cats=[...CAT_ORDER.filter(c=>by[c]), ...Object.keys(by).filter(c=>!CAT_ORDER.includes(c)).sort()];
+  return cats.map(c=>optGrp(CAT_LABELS[c]||c,
+    by[c].sort((a,b)=>String(a.title).localeCompare(String(b.title)))
+         .map(g=>optOne(g.id,g.title,g.id===selId)).join(''))).join('');
+}
+function sessionOptsGrouped(sel,labels){
+  const L=labels||SESSION_LABELS;
+  return SESSION_GROUPS.map(gr=>optGrp(gr.label,
+    gr.types.filter(t=>L[t]).map(t=>optOne(t,L[t],t===sel)).join(''))).join('');
+}
+function timelineOptsGrouped(sel){
+  const by={weekly:'Short',monthly:'Medium',yearly:'Long'};
+  return ['weekly','monthly','yearly'].map(tier=>optGrp(by[tier],
+    TIMELINES.filter(t=>t.tier===tier).map(t=>optOne(t.v,t.label,t.v===sel)).join(''))).join('');
+}
 const TIER_LABELS={weekly:'Weekly',monthly:'Monthly',yearly:'Yearly',decade:'Decade'};
 const TIER_ORDER=['weekly','monthly','yearly','decade'];
 /* granular timelines → coarse tier bucket (drives reset/count/grouping) */
@@ -2093,7 +2144,8 @@ function jFillMilestones(){
   loadGoals(); const g=goalsArr.find(x=>x.id===gid); const cps=(g&&g.checkpoints)||[];
   if(!cps.length){ wrap.style.display='none'; sel.innerHTML=''; return; }
   const cur=sel.value; wrap.style.display='';
-  sel.innerHTML='<option value="">— whole goal —</option>'+cps.map(cp=>`<option value="${cp.id}">${esc(cp.text)}</option>`).join('');
+  sel.innerHTML=optGrp('Applies to',optOne('','\u2014 whole goal \u2014',false))
+              +optGrp('Milestone',cps.map(cp=>optOne(cp.id,cp.text,false)).join(''));
   sel.value=cur;
 }
 function autoLinkForEntry(e){
@@ -2111,8 +2163,12 @@ function autoLinkForEntry(e){
 }
 function renderJournal(){
   loadJournal(); loadGoals();
-  const catSel=document.getElementById('jCat'); if(catSel){ const cur=catSel.value; catSel.innerHTML=CATS.map(c=>`<option value="${c}">${CAT_LABELS[c]||c}</option>`).join(''); if(cur)catSel.value=cur; }
-  const gSel=document.getElementById('jGoal'); if(gSel){ const cur=gSel.value; gSel.innerHTML='<option value="">— none —</option>'+goalsArr.filter(isActive).map(g=>`<option value="${g.id}">${esc(g.title)}</option>`).join(''); gSel.value=cur; }
+  const catSel=document.getElementById('jCat'); if(catSel){ const cur=catSel.value;
+    const ordered=[...CAT_ORDER.filter(c=>CATS.includes(c)),...CATS.filter(c=>!CAT_ORDER.includes(c))];
+    catSel.innerHTML=ordered.map(c=>optOne(c,CAT_LABELS[c]||c,c===cur)).join(''); if(cur)catSel.value=cur; }
+  const gSel=document.getElementById('jGoal'); if(gSel){ const cur=gSel.value;
+    gSel.innerHTML='<option value="">\u2014 none \u2014</option>'+goalOptsGrouped(goalsArr.filter(isActive),cur);
+    gSel.value=cur; }
   jFillMilestones();
   const dl=document.getElementById('jActList'); if(dl){ const acts=[...new Set(journalArr.map(e=>e.activity).filter(Boolean))]; dl.innerHTML=acts.map(a=>`<option value="${esc(a)}"></option>`).join(''); }
   const f=document.getElementById('jFilters'); if(f) f.innerHTML=['all',...CATS].map(c=>`<button class="cat-filter ${activeJournalCat===c?'active':''}" onclick="journalFilter('${String(c).replace(/'/g,"\\'")}')">${c==='all'?'All':(CAT_LABELS[c]||c)}</button>`).join('');
@@ -2564,18 +2620,20 @@ function ctxRenderGoalBoxes(){
   const gOf=id=>goals.find(x=>x.id===id)||{id,title:'',checkpoints:[]};
   const noteOf=id=>(e.boxes&&e.boxes[id])||'';
 
-  let html='';
+  /* LEFT: what your blocks committed you to */
+  let left='<div class="ctx-box-head">Today\u2019s focus <span>\u2014 from your blocks</span></div>';
   if(matches.length){
-    html+='<div class="ctx-box-head">Today\u2019s focus <span>\u2014 note what you did toward each; include the keyword to log it</span></div>';
-    html+=matches.map(m=>ctxBoxCard({
+    left+=matches.map(m=>ctxBoxCard({
       id:m.id, title:m.title, gFull:gOf(m.id), noteVal:noteOf(m.id), dateStr,
       sub:`<div class="cgc-from">from ${m.blocks.map(esc).join(' \u00b7 ')}</div>`,
       links:m.links.length?'<div class="cgc-links">'+m.links.map(L=>`<span class="cgc-link ${L.met?'met':''}">${esc(L.label)} <b>${L.count}/${L.target}</b></span>`).join('')+'</div>':'',
       nums:m.links.filter(L=>L.isNumber).map(L=>`<div class="cgc-num"><label>${esc(L.unit)} today</label><input type="number" step="any" min="0" data-numbox="${L.key}" value="${nums[L.key]!=null?esc(String(nums[L.key])):''}" placeholder="0"></div>`).join('')
     })).join('');
+  } else {
+    left+='<div class="ctx-box-empty">No blocks linked to a goal today \u2014 link a goal to a block and it shows up here.</div>';
   }
 
-  /* the engine: goals with no block today that today's writing points at */
+  /* RIGHT: what your writing points at, with no block behind it */
   let cands=[]; try{ cands=ctxCandidates(dateStr); }catch(_){ cands=[]; }
   const shown=new Set(matches.map(m=>m.id));
   cands=cands.filter(c=>!shown.has(c.gid));
@@ -2583,33 +2641,30 @@ function ctxRenderGoalBoxes(){
   const sugg  =cands.filter(c=>c.tier==='suggest'&&!extra.has(c.gid));
   const manual=[...extra].filter(id=>!shown.has(id)&&!cands.some(c=>c.gid===id));
 
-  if(opened.length||manual.length){
-    html+='<div class="ctx-box-head sec">From today\u2019s context <span>\u2014 no block, but what you wrote points here</span></div>';
-    html+=opened.map(c=>{
-      const terms=c.hits.filter(h=>h.pts>0).map(h=>h.term);
-      return ctxBoxCard({ id:c.gid, title:c.goalTitle, gFull:gOf(c.gid), noteVal:noteOf(c.gid), dateStr,
-        engine:true, dismissable:true,
-        sub:c.via?`<div class="cgc-from">milestone: ${esc(c.via)}</div>`:'',
-        why:terms.length?'picked up: '+terms.slice(0,4).join(', '):'' });
-    }).join('');
-    html+=manual.map(id=>ctxBoxCard({ id, title:(gOf(id).title||id), gFull:gOf(id), noteVal:noteOf(id),
-      dateStr, engine:true, dismissable:true, why:'added by you' })).join('');
-  }
+  let right='<div class="ctx-box-head">From today\u2019s context <span>\u2014 no block, but what you wrote points here</span></div>';
+  right+=opened.map(c=>{
+    const terms=c.hits.filter(h=>h.pts>0).map(h=>h.term);
+    return ctxBoxCard({ id:c.gid, title:c.goalTitle, gFull:gOf(c.gid), noteVal:noteOf(c.gid), dateStr,
+      engine:true, dismissable:true,
+      sub:c.via?`<div class="cgc-from">milestone: ${esc(c.via)}</div>`:'',
+      why:terms.length?'picked up: '+terms.slice(0,4).join(', '):'' });
+  }).join('');
+  right+=manual.map(id=>ctxBoxCard({ id, title:(gOf(id).title||id), gFull:gOf(id), noteVal:noteOf(id),
+    dateStr, engine:true, dismissable:true, why:'added by you' })).join('');
   if(sugg.length){
-    html+='<div class="ctx-sug-row"><span class="ctx-sug-lbl">might be relevant</span>'+
+    right+='<div class="ctx-sug-row"><span class="ctx-sug-lbl">might be relevant</span>'+
       sugg.map(c=>`<button class="ctx-sug" onclick="ctxExpandGoal('${c.gid}')" title="${esc((c.hits.filter(h=>h.pts>0).map(h=>h.term)[0])||'')}">+ ${esc(c.goalTitle)}</button>`).join('')+'</div>';
   }
-  if(!matches.length&&!opened.length&&!manual.length&&!sugg.length){
-    html+='<div class="ctx-box-empty">Nothing surfaced for this day \u2014 write your context above, or add a goal box by hand below.</div>';
+  if(!opened.length&&!manual.length&&!sugg.length){
+    right+='<div class="ctx-box-empty">Nothing picked up yet \u2014 write your context above, or add a box by hand.</div>';
   }
-  /* the fallback: any goal, any day, whatever the engine thought */
   const pickable=goals.filter(g=>isActive(g)&&!shown.has(g.id)&&!extra.has(g.id)&&!opened.some(c=>c.gid===g.id));
   if(pickable.length){
-    html+='<div class="ctx-picker"><select onchange="ctxAddGoalBox(this)">'+
+    right+='<div class="ctx-picker"><select onchange="ctxAddGoalBox(this)">'+
       '<option value="">+ add a goal box by hand\u2026</option>'+
-      pickable.map(g=>`<option value="${g.id}">${esc(g.title)}</option>`).join('')+'</select></div>';
+      goalOptsGrouped(pickable,null)+'</select></div>';
   }
-  host.innerHTML=html;
+  host.innerHTML=`<div class="ctx-cols"><div class="ctx-col">${left}</div><div class="ctx-col engine">${right}</div></div>`;
 }
 function ctxRenderAdherence(date){
   const host=document.getElementById('ctxAdherence'); if(!host) return;
@@ -3002,7 +3057,10 @@ function linkBox(g){
       <option value="habit" ${d.src==='habit'?'selected':''}>Habit (days done)</option>
       <option value="mention" ${d.src==='mention'?'selected':''}>Daily-log mention (keywords)</option>
       <option value="number" ${d.src==='number'?'selected':''}>Number (sum a quantity)</option></select>`;
-    const applySel = cps.length ? `<div class="lk-set"><select id="lk-apply-${g.id}" onchange="linkSetApply(this.value)"><option value="" ${!applyTo?'selected':''}>Whole goal</option>${cps.map(c=>`<option value="${c.id}" ${applyTo===c.id?'selected':''}>▸ ${esc(c.text)}</option>`).join('')}</select></div>` : '';
+    const applySel = cps.length ? `<div class="lk-set"><select id="lk-apply-${g.id}" onchange="linkSetApply(this.value)">`
+      + optGrp('Applies to', optOne('','Whole goal', !applyTo))
+      + optGrp('Milestone', cps.map(c=>optOne(c.id,c.text,applyTo===c.id)).join(''))
+      + `</select></div>` : '';
     let fields='';
     if(d.src==='habit'){
       const habits=read(KEYS.habits)||[];
@@ -3018,7 +3076,7 @@ function linkBox(g){
       fields=`<div class="lk-set"><input id="lk-unit-${g.id}" placeholder="what you're counting (e.g. revenue, pages, km)" value="${esc(unit)}"><input id="lk-target-${g.id}" type="number" min="0" step="any" placeholder="target total" value="${curLink?curLink.target:''}"></div>
         <div class="lk-hint" style="display:block;margin-top:4px">you record an amount each day in the log; they add up toward the target</div>`;
     } else {
-      const opts=LINK_TYPES.map(t=>`<option value="${t}" ${curLink&&curLink.type===t?'selected':''}>${SESSION_LABELS[t]}</option>`).join('');
+      const opts=sessionOptsGrouped(curLink&&curLink.type);
       fields=`<div class="lk-set"><select id="lk-type-${g.id}">${opts}</select><input id="lk-target-${g.id}" type="number" min="1" placeholder="target" value="${curLink?curLink.target:''}"></div>`;
     }
     return `<div class="link-box">
@@ -3081,7 +3139,7 @@ function goalCard(g){
         <button class="goal-btn" onclick="openGoalNotes('${g.id}')" title="All notes logged toward this goal">notes</button>
         <button class="goal-btn del-btn" onclick="deleteGoal('${g.id}')">del</button>
       </div></div>
-    ${reopening===g.id?`<div class="link-box"><div class="lk-title">⟳ reopen with a new timeframe</div><div class="lk-set"><select id="reopen-tl-${g.id}">${TIMELINES.map(t=>`<option value="${t.v}" ${goalTimeline(g)===t.v?'selected':''}>${t.label}</option>`).join('')}</select><button class="goal-btn" onclick="doReopen('${g.id}')" style="color:var(--green);border-color:rgba(107,158,114,.4)">reactivate</button><button class="goal-btn" onclick="cancelReopen()">cancel</button></div></div>`:''}
+    ${reopening===g.id?`<div class="link-box"><div class="lk-title">⟳ reopen with a new timeframe</div><div class="lk-set"><select id="reopen-tl-${g.id}">${timelineOptsGrouped(goalTimeline(g))}</select><button class="goal-btn" onclick="doReopen('${g.id}')" style="color:var(--green);border-color:rgba(107,158,114,.4)">reactivate</button><button class="goal-btn" onclick="cancelReopen()">cancel</button></div></div>`:''}
     <div class="goal-title">${esc(g.title)}</div>
     ${g.desc?`<div class="goal-desc">${esc(g.desc)}</div>`:''}
     ${blkStatLine(g.id)}
@@ -3663,7 +3721,7 @@ function renderStats(){
 /* ---- soccer init/wiring ---- */
 (function initSoccer(){
   const sel=document.getElementById('log-type');
-  SOC_TYPES.forEach(t=>{ const o=document.createElement('option'); o.value=t.v; o.textContent=t.l; sel.appendChild(o); });
+  sel.innerHTML=sessionOptsGrouped(null, Object.fromEntries(SOC_TYPES.map(t=>[t.v,t.l])));
   handleTypeChange();
   document.querySelectorAll('.soc-subtab').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('.soc-subtab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
@@ -3986,8 +4044,24 @@ function blkDup(id){ const b=blkBlocks.find(x=>x.id===id); if(!b) return; const 
 /* ---- editor modal ---- */
 function blkDurOptions(){ const h=document.getElementById('bfDurH'), m=document.getElementById('bfDurM'); h.innerHTML=''; m.innerHTML='';
   for(let i=0;i<=8;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i+' hr'; h.appendChild(o);} [0,15,30,45].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v+' min'; m.appendChild(o);}); }
-function blkTimeOptions(sel,min){ sel.innerHTML=''; for(let mm=BLK_DAY_START;mm<=BLK_DAY_END;mm+=BLK_SLOT){ const o=document.createElement('option'); o.value=mm; o.textContent=blkFmtTime(mm); if(mm===min)o.selected=true; sel.appendChild(o);} }
-function blkFillCats(sel){ const fc=document.getElementById('bfCat'); fc.innerHTML=''; blkCats.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; if(c.id===sel)o.selected=true; fc.appendChild(o);}); const add=document.createElement('option'); add.value='__new'; add.textContent='＋ New category…'; fc.appendChild(add); }
+/* a whole day of 15-minute slots is a wall of text \u2014 head it by part of day */
+function blkTimeBand(mm){ return mm<12*60?'Morning':(mm<17*60?'Afternoon':(mm<21*60?'Evening':'Night')); }
+function blkTimeOptions(sel,min){
+  let html='', band=null;
+  for(let mm=BLK_DAY_START;mm<=BLK_DAY_END;mm+=BLK_SLOT){
+    const b=blkTimeBand(mm);
+    if(b!==band){ if(band!==null) html+='</optgroup>'; html+=`<optgroup label="${b}">`; band=b; }
+    html+=`<option value="${mm}"${mm===min?' selected':''}>${blkFmtTime(mm)}</option>`;
+  }
+  if(band!==null) html+='</optgroup>';
+  sel.innerHTML=html;
+}
+function blkFillCats(sel){
+  const fc=document.getElementById('bfCat'); if(!fc) return;
+  const cats=[...blkCats].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  fc.innerHTML=optGrp('Categories', cats.map(c=>optOne(c.id,c.name,c.id===sel)).join(''))
+            + optGrp('\u2500', optOne('__new','\uff0b New category\u2026',false));
+}
 function blkRelatedGoalIds(){
   const label=(document.getElementById('bfLabel')||{}).value||'';
   const catSel=document.getElementById('bfCat'); const cat=catSel?catSel.value:'';
