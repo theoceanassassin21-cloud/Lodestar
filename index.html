@@ -1468,9 +1468,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -2208,6 +2208,40 @@ function loadContextArr(){ contextArr=read(KEYS.days)||[]; }
 function saveContextArr(){ write(KEYS.days, contextArr); }
 function ctxToday(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function ctxFindDay(date){ return contextArr.find(e=>e.date===date); }
+const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const RANGE_BASE=[['7','last 7 days'],['30','last 30 days'],['90','last 90 days'],['all','everything']];
+/* A range is a rolling day count, 'all', or 'm:YYYY-MM' for one calendar month. */
+function rangeWindow(range){
+  const v=String(range||'30');
+  if(v==='all') return {from:null,to:null,label:null,month:false};
+  const m=/^m:(\d{4})-(\d{2})$/.exec(v);
+  if(m){
+    const y=+m[1], mo=+m[2]-1;
+    return { from:new Date(y,mo,1).getTime(),
+             to:new Date(y,mo+1,1).getTime()-1,
+             label:MONTH_NAMES[mo]+' '+y, month:true };
+  }
+  const n=(+v)||30;
+  return { from:linkDayStart(Date.now())-(n-1)*86400000, to:null, label:null, month:false, days:n };
+}
+function rangeHas(win,t){ if(t==null||isNaN(t)) return false;
+  if(win.from!=null&&t<win.from) return false;
+  if(win.to!=null&&t>win.to) return false; return true; }
+/* months that actually hold data, newest first — no empty months offered */
+function monthsFromDates(dates){
+  const set=new Set();
+  (dates||[]).forEach(d=>{ const m=/^(\d{4})-(\d{2})/.exec(String(d||'')); if(m) set.add(m[1]+'-'+m[2]); });
+  return [...set].sort().reverse();
+}
+function fillRangeSelect(selId,dates){
+  const sel=document.getElementById(selId); if(!sel) return;
+  const cur=sel.value||'30';
+  const ms=monthsFromDates(dates);
+  sel.innerHTML=optGrp('Rolling', RANGE_BASE.map(p=>optOne(p[0],p[1],p[0]===cur)).join(''))
+    + (ms.length?optGrp('By month', ms.map(k=>{ const p=k.split('-');
+        return optOne('m:'+k, MONTH_NAMES[(+p[1])-1]+' '+p[0], ('m:'+k)===cur); }).join('')):'');
+  if(sel.value!==cur){ sel.value=cur; }
+}
 function ctxFmtDate(d){ const dt=new Date(d+'T00:00:00'); return isNaN(dt.getTime())?d:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
 function ctxShort(d){ const dt=new Date(d+'T00:00:00'); return isNaN(dt.getTime())?d:((dt.getMonth()+1)+'/'+dt.getDate()); }
 function ctxSlide(which){ const el=document.getElementById('ctx'+which); if(!el) return; const v=el.value; const a=document.getElementById('ctx'+which+'V'); const b=document.getElementById('ctx'+which+'N'); if(a)a.textContent=v; if(b)b.textContent=v; }
@@ -2751,7 +2785,8 @@ function openGoalNotes(id){
 }
 function closeGoalNotes(){ const o=document.getElementById('goalNotesOverlay'); if(o)o.classList.remove('open'); }
 function ctxEditDay(date){ const d=document.getElementById('ctxDate'); if(d) d.value=date; ctxLoadDay(); try{ (document.getElementById('ctx-block')||document.getElementById('view-journal')).scrollIntoView({behavior:'smooth'}); }catch(_){} }
-function renderContext(){ ctxLoadDay(); ctxRenderTrend(); ctxRenderList(); }
+function renderContext(){ ctxLoadDay(); ctxRenderTrend(); ctxRenderList();
+  try{ fillRangeSelect('ctxRange',(contextArr||[]).map(e=>e&&e.date)); }catch(_){}}
 function ctxRenderList(){
   loadContextArr(); const host=document.getElementById('ctxList'); if(!host) return;
   const days=[...contextArr].sort((a,b)=>a.date<b.date?1:-1);
@@ -2789,12 +2824,15 @@ function ctxRenderTrend(){
 function ctxCopyForClaude(){
   loadContextArr();
   const rSel=document.getElementById('ctxRange'); const range=rSel?rSel.value:'30';
-  const cut=range==='all'?null:linkDayStart(Date.now())-((+range)-1)*86400000;
-  const days=[...contextArr].filter(e=>{ if(!e||!e.date) return false; if(cut==null) return true;
-    const t=Date.parse(e.date+'T00:00:00'); return !isNaN(t)&&t>=cut; }).sort((a,b)=>a.date<b.date?1:-1);
+  const win=rangeWindow(range);
+  const days=[...contextArr].filter(e=>{ if(!e||!e.date) return false;
+    return rangeHas(win, Date.parse(e.date+'T00:00:00')); }).sort((a,b)=>a.date<b.date?1:-1);
   const r=document.getElementById('ctxResult');
-  if(!days.length){ if(r){ r.className='note show err'; r.textContent=(contextArr.length?'No days logged in that range — try a longer one.':'No days logged yet to copy.'); } return; }
-  const spanTxt = range==='all' ? 'all '+days.length+' logged day'+(days.length!==1?'s':'') : days.length+' day'+(days.length!==1?'s':'')+' logged in the last '+range+' days';
+  if(!days.length){ if(r){ r.className='note show err'; r.textContent=(contextArr.length?(win.month?'Nothing logged in '+win.label+'.':'No days logged in that range \u2014 try a longer one.'):'No days logged yet to copy.'); } return; }
+  const n=days.length, plural=n!==1?'s':'';
+  const spanTxt = win.month ? ('all '+n+' logged day'+plural+' in '+win.label)
+                : (range==='all' ? 'all '+n+' logged day'+plural
+                : n+' day'+plural+' logged in the last '+range+' days');
   let txt='DAILY CONTEXT — '+spanTxt+' (newest first). Background on where I am right now:\n\n';
   days.forEach(e=>{ txt+='['+ctxFmtDate(e.date)+'] momentum '+(e.momentum==null?'—':e.momentum)+'/10 · pressure '+(e.pressure==null?'—':e.pressure)+'/10'+(e.energy!=null?' · energy '+e.energy+'/10':'')+(e.sleep!=null?' · slept '+e.sleep+'h':'')+'\n';
     if(e.context)txt+='Context: '+e.context+'\n';
@@ -3601,12 +3639,13 @@ function socCopyForClaude(){
   const res=document.getElementById('socCopyResult');
   const say=(msg,bad)=>{ if(res){ res.textContent=msg; res.style.color=bad?'var(--red)':'var(--gold)'; } };
   const rSel=document.getElementById('socRange'); const range=rSel?rSel.value:'30';
-  const cut=range==='all'?null:linkDayStart(Date.now())-((+range)-1)*86400000;
+  const win=rangeWindow(range);
   let list=socEntries.filter(e=>e&&!e.archived);
   if(socFilter!=='all') list=list.filter(e=>e.type===socFilter);
-  if(cut!=null) list=list.filter(e=>{ const t=sessionTime(e); return t&&t>=cut; });
+  if(win.from!=null||win.to!=null) list=list.filter(e=>rangeHas(win, sessionTime(e)));
   list=list.sort((a,b)=>sessionTime(b)-sessionTime(a));
-  if(!list.length){ say('No sessions in that range'+(socFilter!=='all'?' for this filter':'')+'.',true); return; }
+  if(!list.length){ say(win.month?('No sessions in '+win.label+(socFilter!=='all'?' for this filter':'')+'.')
+    :('No sessions in that range'+(socFilter!=='all'?' for this filter':'')+'.'),true); return; }
   const scope = socFilter==='all'?'all types':(SESSION_LABELS[socFilter]||socFilter);
   const span = range==='all'?'all time':'last '+range+' days';
   let txt='SOCCER SESSIONS \u2014 '+list.length+' session'+(list.length!==1?'s':'')+' \u00b7 '+scope+' \u00b7 '+span+' (newest first).\nPlease analyse my patterns, what is improving, what is slipping, and what to change:\n\n';
@@ -3662,6 +3701,9 @@ function entryCard(e,isArch){
     ${cats?`<div class="mini-ratings">${cats}</div>`:''}</div>`;
 }
 function renderEntries(){
+  try{ fillRangeSelect('socRange',(socEntries||[]).filter(e=>e&&!e.archived).map(e=>{
+    const t=sessionTime(e); if(!t) return null; const d=new Date(t);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01'; }).filter(Boolean)); }catch(_){}
   loadSoc(); buildEntryFilters();
   const act=socEntries.filter(e=>!e.archived), arch=socEntries.filter(e=>e.archived);
   const fa=socFilter==='all'?act:act.filter(e=>e.type===socFilter);
