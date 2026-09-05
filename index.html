@@ -1331,9 +1331,9 @@
       <div id="ctxAdherence" class="ctx-adherence"></div>
       <div id="ctxGoalBoxes" style="margin-top:10px"></div>
       <div class="ctx-grid">
-        <div class="form-group span2"><label class="form-label">Context — what today was about</label><textarea class="form-textarea" id="ctxContext" style="min-height:74px"></textarea></div>
-        <div class="form-group span2"><label class="form-label">Decisions — what you decided &amp; why</label><textarea class="form-textarea" id="ctxDecisions"></textarea></div>
-        <div class="form-group span2"><label class="form-label">Friction — what got in the way</label><textarea class="form-textarea" id="ctxFriction"></textarea></div>
+        <div class="form-group span2"><label class="form-label">Context — what today was about</label><textarea class="form-textarea" id="ctxContext" style="min-height:74px" oninput="ctxEngineNudge()"></textarea></div>
+        <div class="form-group span2"><label class="form-label">Decisions — what you decided &amp; why</label><textarea class="form-textarea" id="ctxDecisions" oninput="ctxEngineNudge()"></textarea></div>
+        <div class="form-group span2"><label class="form-label">Friction — what got in the way</label><textarea class="form-textarea" id="ctxFriction" oninput="ctxEngineNudge()"></textarea></div>
       </div>
       <div class="ctx-top3">
         <label class="form-label">Tomorrow’s top 3 — what to hit next (shows on your dashboard in the morning)</label>
@@ -1468,9 +1468,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -2257,6 +2257,7 @@ function ctxLoadDay(){
   const _sl=document.getElementById('ctxSleep'); if(_sl) _sl.value=(e.sleep!=null?e.sleep:'');
   const _t3=e.top3||[]; ['1','2','3'].forEach((n,i)=>{ const el=document.getElementById('ctxTop'+n); if(el) el.value=_t3[i]||''; });
   try{ ctxRenderAdherence(dEl.value); }catch(_){}
+  ctxResetDraft(dEl.value);
   ctxRenderGoalBoxes();
   const r=document.getElementById('ctxResult'); if(r){ r.className='note'; r.textContent=''; }
 }
@@ -2464,10 +2465,10 @@ function ctxPrimeTokens(dateStr){
 }
 /* candidate pool: every linked goal/milestone MINUS anything that already has a
    block that day — those surface through the block path, so nothing gets two boxes */
-function ctxCandidates(dateStr){
+function ctxCandidates(dateStr, textOverride){
   try{ loadGoals(); }catch(_){ return []; }
   const e=ctxFindDay(dateStr)||{};
-  const tokens=ctxTok(ctxDayText(e));
+  const tokens=ctxTok(textOverride!=null?textOverride:ctxDayText(e));
   if(!tokens.length) return [];
   const prime=ctxPrimeTokens(dateStr);
   const dismissed=((ctxLoadLex().dismissed||{})[dateStr])||[];
@@ -2624,6 +2625,46 @@ function ctxNoteCheck(gid){
   const st=ctxNoteState(g, val, dEl?dEl.value:'');
   host.className=st.cls; host.innerHTML=st.html;
 }
+/* What the engine should read: whatever is in the boxes right now if this is the
+   day being edited, otherwise the saved entry. Without this the engine can only
+   ever react to text you already saved and left the page. */
+function ctxLiveText(dateStr){
+  const dEl=document.getElementById('ctxDate'), cEl=document.getElementById('ctxContext');
+  if(dEl&&cEl&&dEl.value===dateStr){
+    const v=id=>String((document.getElementById(id)||{}).value||'');
+    return [v('ctxContext'),v('ctxDecisions'),v('ctxFriction')].filter(x=>x.trim()).join(' . ');
+  }
+  return ctxDayText(ctxFindDay(dateStr)||{});
+}
+/* Re-rendering rebuilds every note box, so anything typed and not yet saved would
+   vanish. Harvest first, prefer the draft over the stored value. */
+let ctxDraft={date:null,notes:{}};
+function ctxHarvestNotes(){
+  const d=String((document.getElementById('ctxDate')||{}).value||'');
+  if(ctxDraft.date!==d) ctxDraft={date:d,notes:{}};
+  try{ document.querySelectorAll('[data-notebox]').forEach(el=>{
+    const k=el.getAttribute('data-notebox'); if(k!=null) ctxDraft.notes[k]=String(el.value||''); }); }catch(_){}
+}
+function ctxDraftNote(dateStr,id,saved){
+  return (ctxDraft.date===dateStr && Object.prototype.hasOwnProperty.call(ctxDraft.notes,id))
+    ? ctxDraft.notes[id] : saved;
+}
+function ctxResetDraft(dateStr){ ctxDraft={date:String(dateStr||''),notes:{}}; ctxLastSig=null; }
+/* Only rebuild when the set of boxes actually changes \u2014 otherwise every keystroke
+   would tear down and redraw the column underneath you. */
+let ctxNudgeT=null, ctxLastSig=null;
+function ctxCandSig(dateStr){
+  let c=[]; try{ c=ctxCandidates(dateStr, ctxLiveText(dateStr)); }catch(_){ c=[]; }
+  return c.map(x=>x.gid+':'+x.tier).join('|');
+}
+function ctxEngineNudge(){
+  try{ clearTimeout(ctxNudgeT); }catch(_){}
+  ctxNudgeT=setTimeout(()=>{
+    const d=String((document.getElementById('ctxDate')||{}).value||ctxToday());
+    if(ctxCandSig(d)===ctxLastSig) return;
+    ctxHarvestNotes(); ctxRenderGoalBoxes();
+  },400);
+}
 let ctxExtra=new Set(), ctxExtraDate=null;
 function ctxExtrasFor(dateStr){ if(ctxExtraDate!==dateStr){ ctxExtraDate=dateStr; ctxExtra=new Set(); } return ctxExtra; }
 function ctxExpandGoal(gid){ ctxExtra.add(gid); ctxRenderGoalBoxes(); }
@@ -2652,7 +2693,7 @@ function ctxRenderGoalBoxes(){
   const e=ctxFindDay(dateStr)||{}; const nums=e.nums||{};
   const goals=read(KEYS.goals)||[];
   const gOf=id=>goals.find(x=>x.id===id)||{id,title:'',checkpoints:[]};
-  const noteOf=id=>(e.boxes&&e.boxes[id])||'';
+  const noteOf=id=>ctxDraftNote(dateStr,id,(e.boxes&&e.boxes[id])||'');
 
   /* LEFT: what your blocks committed you to */
   let left='<div class="ctx-box-head">Today\u2019s focus <span>\u2014 from your blocks</span></div>';
@@ -2668,7 +2709,7 @@ function ctxRenderGoalBoxes(){
   }
 
   /* RIGHT: what your writing points at, with no block behind it */
-  let cands=[]; try{ cands=ctxCandidates(dateStr); }catch(_){ cands=[]; }
+  let cands=[]; try{ cands=ctxCandidates(dateStr, ctxLiveText(dateStr)); }catch(_){ cands=[]; }
   const shown=new Set(matches.map(m=>m.id));
   cands=cands.filter(c=>!shown.has(c.gid));
   const opened=cands.filter(c=>c.tier==='open'||extra.has(c.gid));
@@ -2699,6 +2740,7 @@ function ctxRenderGoalBoxes(){
       goalOptsGrouped(pickable,null)+'</select></div>';
   }
   host.innerHTML=`<div class="ctx-cols"><div class="ctx-col">${left}</div><div class="ctx-col engine">${right}</div></div>`;
+  ctxLastSig=cands.map(c=>c.gid+':'+(extra.has(c.gid)?'open':c.tier)).join('|');
 }
 function ctxRenderAdherence(date){
   const host=document.getElementById('ctxAdherence'); if(!host) return;
