@@ -1468,9 +1468,9 @@ function write(key,val){ localStorage.setItem(key, typeof val==='string'?val:JSO
    ☁ CLOUD SYNC (Supabase) — FILL IN THE 3 VALUES BELOW, then re-upload.
    Leave them blank and the app runs purely local (no sync), exactly as before.
    ============================================================ */
-const SYNC_URL  = "https://kwkeowdlxznznozsstva.supabase.co";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
-const SYNC_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3a2Vvd2RseHpuem5venNzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTQzMDgsImV4cCI6MjA5OTk3MDMwOH0.hJv0izrzarThQUnSICJskQSJRo_eKVeVqTraheQU65c";   // Supabase → Project Settings → API → "anon public" key
-const SYNC_PASS = "vacheron";   // your secret passphrase — the SAME on every device
+const SYNC_URL  = "";   // Supabase → Project Settings → API → "Project URL"  (e.g. https://abcd.supabase.co)
+const SYNC_KEY  = "";   // Supabase → Project Settings → API → "anon public" key
+const SYNC_PASS = "";   // your secret passphrase — the SAME on every device
 /* ---- sync engine (no need to edit below) ---- */
 const SYNC_TS_KEY='lodestar:sync:ts';
 let syncApplying=false, syncTimer=null, syncBusy=false, currentView='dash';
@@ -2093,9 +2093,10 @@ function linkTextFor(link){
 }
 function copyGoalTitles(){
   try{ loadGoals(); }catch(_){}
-  const list=(read(KEYS.goals)||[]).filter(isActive).filter(g=>g&&g.title);
-  if(!list.length){ soctoast('No active goals to copy yet.'); return; }
-  let text='My current goals, for planning blocks.\n'
+  /* only what the page is showing \u2014 weekly, monthly, yearly, all, and any category filter */
+  const list=goalsInCurrentTab().filter(g=>g&&g.title);
+  if(!list.length){ soctoast('No goals on this tab to copy.'); return; }
+  let text='My goals \u2014 '+goalTabLabel()+' ('+list.length+'), for planning blocks.\n'
     +'Copy a goal NAME exactly as written after "- " into the Goal field (verbatim, or leave blank).\n'
     +'Indented lines are context to plan against \u2014 never paste those as a goal name.\n\n';
   list.forEach(g=>{
@@ -2123,7 +2124,7 @@ function copyGoalTitles(){
     }
     text+='\n';
   });
-  const done=()=>soctoast('Copied '+list.length+' goal'+(list.length!==1?'s':'')+' with links \u2014 paste into your block chat.');
+  const done=()=>soctoast('Copied '+list.length+' goal'+(list.length!==1?'s':'')+' \u00b7 '+goalTabLabel()+' \u2014 paste into your block chat.');
   try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done,()=>soctoast('Copy failed \u2014 try again.')); } else { done(); } }catch(e){ done(); }
 }
 function dashAct(act){
@@ -3379,10 +3380,18 @@ function goalsInCurrentTab(){
     return true;
   });
 }
+/* what the goals page is currently showing \u2014 tier and category filter both */
+function goalTabLabel(){
+  const tier = activeTier==='completed'?'Completed'
+    : activeTier==='incomplete'?'Incomplete'
+    : activeTier==='all'?'Active'
+    : (activeTier.charAt(0).toUpperCase()+activeTier.slice(1)+' (active)');
+  return tier + (activeCat!=='all' ? (' \u00b7 '+(CAT_LABELS[activeCat]||activeCat)) : '');
+}
 function copyGoalsReview(){
   loadGoals();
   const list=goalsInCurrentTab();
-  const tabName = activeTier==='completed'?'Completed':activeTier==='incomplete'?'Incomplete':activeTier==='all'?'Active':(activeTier.charAt(0).toUpperCase()+activeTier.slice(1)+' (active)');
+  const tabName = goalTabLabel();
   if(!list.length){ try{soctoast('No goals to copy in this tab.');}catch(_){}; return; }
   let txt='GOALS REVIEW — '+tabName+' ('+list.length+'). Please review my progress, patterns, and what to adjust:\n\n';
   list.forEach(g=>{
